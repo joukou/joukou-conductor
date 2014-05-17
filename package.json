@@ -17,6 +17,9 @@
     "url": "https://www.blossom.io/app/blay4k3jubf3vkmdvlhxczig7q/b4ajv73mfzfszaglmujie7ar3u/board"
   },
   "homepage": "https://github.com/joukou/joukou-conductor",
+  "dependencies": {
+    "q": "1.0.1"
+  },
   "devDependencies": {
     "coffee-script": "1.7.1",
     "lazypipe": "0.2.1",
