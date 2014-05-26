@@ -1,11 +1,10 @@
-Joukou Conductor
+Joukou Conductor [![Build Status](https://circleci.com/gh/joukou/joukou-conductor/tree/develop.png?circle-token=008054be871672cdcbe10946266261a040003278)](https://circleci.com/gh/joukou/joukou-conductor/tree/develop) [![Coverage Status](https://coveralls.io/repos/joukou/joukou-conductor/badge.png?branch=develop)](https://coveralls.io/r/joukou/joukou-conductor?branch=develop) [![MPL-2.0 Licensed](http://img.shields.io/badge/license-MPL--2.0-red.png)](#license)
 ================
 
-[![Build Status](https://circleci.com/gh/joukou/joukou-conductor/tree/develop.png?circle-token=008054be871672cdcbe10946266261a040003278)](https://circleci.com/gh/joukou/joukou-conductor/tree/develop)
-[![Coverage Status](https://coveralls.io/repos/joukou/joukou-conductor/badge.png?branch=develop)](https://coveralls.io/r/joukou/joukou-conductor?branch=develop)
-[![MPL-2.0 Licensed](http://img.shields.io/badge/license-MPL--2.0-red.png)](#license)
+![](http://media.giphy.com/media/wL4X1JKd0pK2Q/giphy.gif)
 
-![Conductor](http://media.giphy.com/media/wL4X1JKd0pK2Q/giphy.gif)
+The conductor is responsible for execution of flow-based programming graphs on
+the Joukou platform.
 
 ## License
 
