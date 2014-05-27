@@ -3,8 +3,7 @@ Joukou Conductor [![Build Status](https://circleci.com/gh/joukou/joukou-conducto
 
 ![](http://media.giphy.com/media/wL4X1JKd0pK2Q/giphy.gif)
 
-The conductor is responsible for execution of flow-based programming graphs on
-the Joukou platform.
+Orchestrates execution of FBP graphs (aka networks) on the Joukou platform.
 
 ## License
 
