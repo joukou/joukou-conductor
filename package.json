@@ -1,7 +1,7 @@
 {
   "name": "joukou-conductor",
   "version": "0.0.0",
-  "description": "Orchestrates running FBP graphs (aka networks) on the Joukou platform.",
+  "description": "Orchestrates execution of FBP graphs (aka networks) on the Joukou platform.",
   "main": "dist/index.js",
   "scripts": {
     "test": "gulp ci"
@@ -10,8 +10,8 @@
     "type": "git",
     "url": "git://github.com/joukou/joukou-conductor.git"
   },
-  "author": "Joukou Ltd <team@joukou.co>",
-  "license": "MPL-2.0",
+  "author": "Joukou Ltd <team@joukou.com>",
+  "license": "Proprietary",
   "private": true,
   "bugs": {
     "url": "https://www.blossom.io/app/blay4k3jubf3vkmdvlhxczig7q/b4ajv73mfzfszaglmujie7ar3u/board"
