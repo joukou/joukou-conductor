@@ -28,6 +28,7 @@ class DiscoveryClient
   _error: null
   _discovering: false
   _resolveOnDiscovery: []
+  _request: request
   # END "Private" variables
   ###*
   @param {string} endpoint
@@ -42,7 +43,10 @@ class DiscoveryClient
   doDiscovery: ->
     deferred = Q.defer()
     if this._complete
-      deferred.resolve(this)
+      if this._error
+        deferred.reject(this._error)
+      else
+        deferred.resolve(this)
       return deferred.promise
     this._resolveOnDiscovery.push(deferred)
     if this._discovering

@@ -200,4 +200,31 @@ describe "client", ->
     promise = client.onDiscovery()
     promise.should.eventually.be.rejectedWith(Error, "Resources not an object")
 
+  specify "do discovery", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    client._request.get = (url, callback) -> callback(null, { statusCode: 200 }, JSON.stringify(discovery))
+    promise = client.doDiscovery()
+    promise.should.eventually.equal(client)
+
+  specify "do discovery after resolve", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    client._resolve()
+    promise = client.doDiscovery()
+    promise.should.eventually.equal(client)
+
+  specify "do discovery after reject", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    message = "Test"
+    client._rejectWithError(new Error(message))
+    promise = client.doDiscovery()
+    promise.should.eventually.be.rejectedWith(Error, message)
+
+  specify "do discovery while discovering", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    client._discovering = true
+    promise = client.doDiscovery()
+    promise.should.eventually.equal(client)
+    client._resolve()
+
+
 
