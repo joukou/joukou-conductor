@@ -8,6 +8,7 @@ gulp        = require( 'gulp' )
 plugins     = require( 'gulp-load-plugins' )( lazy: false )
 lazypipe    = require( 'lazypipe' )
 path        = require( 'path' )
+del         = require( 'del' )
 
 ###*
 Paths.
@@ -53,10 +54,8 @@ tasks =
     gulp.src( paths.src.coffee )
       .pipe( plugins.sloc() )
 
-  clean: ->
-    gulp.src( paths.dist.dir, read: false )
-      .pipe( plugins.clean( force: true ) )
-      .on( 'error', plugins.util.log )
+  clean: ( done ) ->
+    del( paths.dist.dir, done )
 
   coffeelint: ->
     gulp.src( paths.src.coffee )
@@ -66,34 +65,11 @@ tasks =
 
   coffee: ->
     gulp.src( paths.src.coffee )
-      .pipe( plugins.coffee( bare: true, sourceMap: true ) )
+      .pipe( plugins.sourcemaps.init() )
+      .pipe( plugins.coffee( bare: true ).on( 'error', plugins.util.log ) )
+      .pipe( plugins.sourcemaps.write( ) )
       .pipe( gulp.dest( paths.dist.dir ) )
       .on( 'error', plugins.util.log )
-
-  jsdoc: ->
-    gulp.src( paths.dist.js )
-      .pipe( plugins.jsdoc.parser(
-        description: require( './package.json' ).description
-        version: require( './package.json' ).version
-        licenses: [ require( './package.json').license ]
-        plugins: [ 'plugins/markdown' ]
-      ) )
-      .pipe( plugins.jsdoc.generator( paths.dist.jsdocs,
-        path: 'ink-docstrap'
-        systemName: 'Joukou Conductor'
-        footer: 'A simple and intuitive way to web enable and monetize your data.'
-        copyright: 'Joukou Ltd. All rights reserved.'
-        navType: 'vertical'
-        theme: 'cerulean'
-        linenums: true
-        collapseSymbols: false
-        inverseNav: false
-      ,
-        private: false
-        monospaceLinks: false
-        cleverLinks: false
-        outputSourceFiles: false
-      ) )
 
   test: ( done ) ->
     gulp.src( paths.dist.js )
@@ -106,12 +82,12 @@ tasks =
     )
     return
 
-  coveralls: ->
-    gulp.src( 'coverage/lcov.info' )
-      .pipe( plugins.coveralls() )
-      .on( 'end', ->
-        process.exit(0)
-      )
+  # coveralls: ->
+  #   gulp.src( 'coverage/lcov.info' )
+  #     .pipe( plugins.coveralls() )
+  #     .on( 'end', ->
+  #       process.exit(0)
+  #     )
 
 #
 # General tasks.
@@ -126,8 +102,7 @@ gulp.task( 'coffeelint', tasks.coffeelint )
 
 gulp.task( 'clean:build', tasks.clean )
 gulp.task( 'coffee:build', [ 'clean:build' ], tasks.coffee )
-gulp.task( 'jsdoc:build', [ 'coffee:build' ], tasks.jsdoc )
-gulp.task( 'build', [ 'sloc', 'coffeelint', 'jsdoc:build' ] )
+gulp.task( 'build', [ 'sloc', 'coffeelint', 'coffee:build' ] )
 
 gulp.task( 'test:build', [ 'build' ], tasks.test )
 gulp.task( 'test', [ 'test:build' ], ->
@@ -140,7 +115,7 @@ gulp.task( 'test', [ 'test:build' ], ->
 # Continuous-integration tasks.
 #
 
-gulp.task( 'ci', [ 'test:build' ], tasks.coveralls )
+gulp.task( 'ci', [ 'test:build' ] ) #, tasks.coveralls )
 
 #
 # Develop tasks.
@@ -152,7 +127,7 @@ gulp.task( 'test:develop', [ 'build' ], ->
   gulp.src( [ paths.dist.js, paths.test.coffee ], read: false )
     .pipe( plugins.watch( emit: 'all', ( files ) ->
       files
-        .pipe( plugins.grepStream( path.join( '**', paths.test.coffee ) ) )
+        .pipe( plugins.filter( path.join( '**', paths.test.coffee ) ) )
         .pipe( mocha() )
         .on( 'error', plugins.util.log )
     ) )
