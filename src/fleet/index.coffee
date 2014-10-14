@@ -5,17 +5,24 @@
 ###
 
 Q         = require("Q")
-discovery = require("./discovery")
+discovery = require("./discovery/client")
 
 class FleetClient
+  ###*
+  @type {DiscoveryClient}
+  ###
   discoveryClient: null
   constructor: (endpoint) ->
-    discoveryClient = discovery.getClient(endpoint)
+    discoveryClient = client.getClient(endpoint)
     discoveryClient.doDiscovery()
   # https://github.com/coreos/fleet/blob/master/Documentation/api-v1-alpha.md#create-a-unit
   createUnit: (name, options, desiredState, currentState, machineId) ->
     deferred = Q.defer()
+    self.discoveryClient
+      .onDiscovery()
+      .then((client) ->
 
+    )
     deferred.promise
 
   # https://github.com/coreos/fleet/blob/master/Documentation/api-v1-alpha.md#modify-desired-state-of-a-unit
@@ -44,13 +51,13 @@ class FleetClient
 
   # https://github.com/coreos/fleet/blob/master/Documentation/api-v1-alpha.md#retrieve-current-state-of-all-units
   getMachineStates: (machineId) ->
-    return getState(
+    return self.getState(
       machineId: machineId
     )
 
   # https://github.com/coreos/fleet/blob/master/Documentation/api-v1-alpha.md#retrieve-current-state-of-all-units
   getUnitStates: (unitName) ->
-    return getState(
+    return self.getState(
       unitName: unitName
     )
 

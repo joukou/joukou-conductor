@@ -1,22 +1,7 @@
-Q       = require("q")
-request = require("request")
-
-class DiscoveryMethod
-  constructor: (id,
-                description,
-                httpMethod,
-                path,
-                parameters,
-                parameterOrder,
-                response) ->
-
-
-class DiscoveryResource
-  ###*
-  @param {string} name
-  @param {Array.<DiscoveryMethod>} methods
-  ###
-  constructor: (name, methods) ->
+Q                 = require("q")
+request           = require("request")
+DiscoveryResource = require("./resource")
+DiscoveryMethod   = require("./method")
 
 class DiscoveryClient
   # START Values from discovery.json
@@ -41,29 +26,28 @@ class DiscoveryClient
   error: null
   discovering: false
   resolveOnDiscovery: []
-
   ###*
   @param {string} endpoint
   ###
   constructor: (endpoint, basePath) ->
-    self.endpoint = endpoint
+    this.endpoint = endpoint
     if not endpoint
       throw new Error("Endpoint is required")
-    self.basePath = basePath
-    if self.basePath is null
-      self.basePath = "/v1-alpha/"
+    this.basePath = basePath
+    if this.basePath is null
+      this.basePath = "/v1-alpha/"
   doDiscovery: ->
     deferred = Q.defer()
-    if self.complete
-      deferred.resolve(self)
+    if this.complete
+      deferred.resolve(this)
       return deferred.promise
-    self.resolveOnDiscovery.push(deferred)
-    if self.discovering
+    this.resolveOnDiscovery.push(deferred)
+    if this.discovering
       return deferred.promise
-    self.discovering = true
-    client = self
+    this.discovering = true
+    client = this
     request.get(
-      "#{self.endpoint}#{self.basePath}discovery.json",
+      "#{this.endpoint}#{this.basePath}discovery.json",
       (error, response, body) ->
         rejectWithError = (rejectError) ->
           client.error = rejectError
@@ -102,15 +86,45 @@ class DiscoveryClient
     deferred.promise;
   onDiscovery: ->
     deferred = Q.defer()
-    if self.complete
-      if self.error
-        deferred.reject(self.error)
+    if this.complete
+      if this.error
+        deferred.reject(this.error)
       else
-        deferred.resolve(self)
-    else if self.discovering
-      self.resolveOnDiscovery.push(deferred)
+        deferred.resolve(this)
+    else if this.discovering
+      this.resolveOnDiscovery.push(deferred)
     deferred.promise
   resolveDiscovery: (discovery) ->
+    if discovery not instanceof Object
+      throw new Error("Discovery not instanceof an object")
+    resources = {}
+    if discovery.resources instanceof Object
+      for resourceName of discovery.resources
+        if not discovery.resources.hasOwnProperty(resourceName)
+          continue
+        resource = discovery.resources[resourceName]
+        if resource.methods not instanceof Object
+          continue
+        methods = {}
+        for methodName of resource.methods
+          if not resource.methods.hasOwnProperty(methodName)
+            continue
+          method = resource.methods[methodName]
+          if method not instanceof Object
+            continue
+          methods[methodName] = new DiscoveryMethod(
+            method.id,
+            method.description,
+            method.httpMethod,
+            method.path,
+            method.parameters,
+            method.parameterOrder,
+            method.request,
+            method.response
+          )
+        resources[resourceName] = new DiscoveryResource(resourceName, methods)
+    this.resources = resources
+    resources
 
 
 module.exports =
