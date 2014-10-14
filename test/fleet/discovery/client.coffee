@@ -60,6 +60,13 @@ describe "client", ->
     expect(resources).to.be.instanceof(Object)
     expect(resources).to.include.key("resource")
 
+  specify "doesn't prototyped values", ->
+    Object.prototype.randomFunction = ->
+      true
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    resources = client._resolveResources({})
+    expect(resources).to.not.include.key("randomFunction")
+
   specify "doesn't resolve resources if undefined", ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     expect(client._resolveResources).to.throw(Error)
@@ -77,11 +84,29 @@ describe "client", ->
     expect(resource.methods).to.exist
     expect(resource.methods).to.be.instanceof(Object)
 
+  specify "doesn't resolves resource", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    resource = client._resolveResource("resource", null)
+    expect(resource).to.not.exist
+
   specify "resolves get method", ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     method = client._resolveMethod("get", discovery.resources.resource.methods.get)
     expect(method).to.exist
     expect(method).to.be.instanceof(Object)
+
+  specify "resolves get method from resource", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    resource = client._resolveResource("resource", discovery.resources.resource)
+    expect(resource.methods).to.include.key("get")
+
+  specify "doesn't resolve test method from resource", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    resource = client._resolveResource("resource", {
+      methods:
+        test: null
+    })
+    expect(resource.methods).to.not.include.key("test")
 
   specify "resolves get method id", ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
@@ -157,10 +182,22 @@ describe "client", ->
     promise = client.onDiscovery()
     promise.should.eventually.equal(client)
 
-  specify "discovery response has broken body", ->
+  specify "discovery response has broken body (Array)", ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._onDiscoveryResult(null, {statusCode:200}, "[]")
     promise = client.onDiscovery()
     promise.should.eventually.be.rejectedWith(Error, "discovery.json body not an object")
+
+  specify "discovery response has broken body (date)", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    client._onDiscoveryResult(null, {statusCode:200}, new Date())
+    promise = client.onDiscovery()
+    promise.should.eventually.be.rejectedWith(Error)
+
+  specify "discovery response has broken body (no resources)", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    client._onDiscoveryResult(null, {statusCode:200}, "{}")
+    promise = client.onDiscovery()
+    promise.should.eventually.be.rejectedWith(Error, "Resources not an object")
 
 

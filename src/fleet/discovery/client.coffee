@@ -126,7 +126,7 @@ class DiscoveryClient
     for methodName of resource.methods
       if not resource.methods.hasOwnProperty(methodName)
         continue
-      method = this._resolveMethod(resource.methods[methodName])
+      method = this._resolveMethod(methodName, resource.methods[methodName])
       if method
         methods[methodName] = method
     new DiscoveryResource(resourceName, methods)
