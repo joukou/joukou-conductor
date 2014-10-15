@@ -31,15 +31,58 @@ describe "client", ->
   specify "fails when no endpoint", ->
     expect(clientModule.getClient).to.Throw(Error, "Endpoint is required")
 
+  specify "fails when endpoint wrong type", ->
+    expect(->
+      clientModule.getClient(1)
+    ).to.Throw(TypeError, "Endpoint is expected to be a string")
+
+  specify "fails when basePath wrong type", ->
+    expect(->
+      clientModule.getClient("test", 1)
+    ).to.Throw(TypeError, "Base path is expected to be a string")
+
   specify "uses endpoint", ->
     endpoint = "localhost:10000"
     client = clientModule.getClient(endpoint, "/v1-alpha/")
+    expect(client.endpoint).to.equal(endpoint)
+
+  specify "removes trailing slash from endpoint", ->
+    endpoint = "localhost:10000"
+    client = clientModule.getClient(endpoint + "/")
     expect(client.endpoint).to.equal(endpoint)
 
   specify "uses path", ->
     path = "/v2-alpha/"
     client = clientModule.getClient("localhost:4002", path)
     expect(client.basePath).to.equal(path)
+
+  specify "adds leading slash to path", ->
+    path = "v2-alpha/"
+    client = clientModule.getClient("localhost:4002", path)
+    expect(client.basePath).to.equal("/" + path)
+
+  specify "adds trailing slash to path", ->
+    path = "/v2-alpha"
+    client = clientModule.getClient("localhost:4002", path)
+    expect(client.basePath).to.equal(path + "/")
+
+  specify "adds trailing and leading slash to path", ->
+    path = "v2-alpha"
+    client = clientModule.getClient("localhost:4002", path)
+    expect(client.basePath).to.equal("/" + path + "/")
+
+  specify "sets path to slash", ->
+    path = ""
+    client = clientModule.getClient("localhost:4002", path)
+    expect(client.basePath).to.equal("/")
+
+  specify "split last characters returns empty string", ->
+    client = clientModule.getClient("test")
+    expect(client._stripLastCharacter(1)).to.equal("")
+
+  specify "split last characters returns null", ->
+    client = clientModule.getClient("test")
+    expect(client._lastCharacter(1)).to.equal(null)
 
   specify "resolves when no path", ->
     client = clientModule.getClient("localhost:4002")
@@ -98,6 +141,15 @@ describe "client", ->
     method = client._resolveMethod("get", discovery.resources.resource.methods.get)
     expect(method).to.exist
     expect(method).to.be.instanceof(Object)
+
+  specify "fails to resolve if no httpMethod", ->
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    resource = client._resolveResource("resource", {
+      methods:
+        get:
+          id: "get"
+    })
+    expect(resource.methods).to.not.include.key("get")
 
   specify "resolves get method from resource", ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")

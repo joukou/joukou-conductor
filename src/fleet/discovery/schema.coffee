@@ -107,7 +107,10 @@ class DiscoverySchema
         # We don't want circular references
         if not schema or schema is this
           continue
-        options[key].schema = this.client.getSchema(ref)._generateSchemaOptions()
+        options[key].schema = this
+          .client
+          .getSchema(ref)
+          ._generateSchemaOptions()
       else if property.type is "object"
         options[key] = {
           type: "object",
@@ -121,7 +124,10 @@ class DiscoverySchema
         # We don't want circular references
         if not schema or schema is this
           continue
-        options[key].schema = this.client.getSchema(ref)._generateSchemaOptions()
+        options[key].schema = this
+          .client
+          .getSchema(ref)
+          ._generateSchemaOptions()
       else
         type = null
         # "integer" is the only type that is different

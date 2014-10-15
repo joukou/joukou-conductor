@@ -63,7 +63,7 @@ class DiscoveryClient
     if not str or typeof str isnt "string"
       return ""
     length = str.length
-    str.substring(0, length - 2)
+    str.substring(0, length - 1)
   _firstCharacter: (str) ->
     if not str or typeof str isnt "string"
       return null
