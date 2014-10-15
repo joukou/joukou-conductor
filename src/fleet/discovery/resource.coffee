@@ -1,5 +1,3 @@
-Q = require("q")
-
 class DiscoveryResource
   name: ""
   methods: []
