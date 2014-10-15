@@ -172,89 +172,91 @@ describe "client", ->
     method = client._resolveMethod("get", {httpMethod:"GET", path:"TEST"})
     expect(method.id).to.not.equal("get")
 
-  specify "on discovery resolves", ->
+  specify "on discovery resolves", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._discovering = true
     promise = client.onDiscovery()
-    promise.should.eventually.equal(client)
+    promise.should.eventually.equal(client).notify(done)
     client._resolve()
 
-  specify "on discovery reject", ->
+  specify "on discovery reject", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._discovering = true
     promise = client.onDiscovery()
     message = "Test"
     client._rejectWithError(new Error(message))
-    promise.should.eventually.be.rejectedWith(Error, message)
+    promise.should.eventually.be.rejectedWith(Error, message).notify(done)
 
-  specify "on discovery multiple resolves", ->
+  specify "on discovery multiple resolves", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._discovering = true
     promiseA = client.onDiscovery()
     promiseB = client.onDiscovery()
     promiseA.should.eventually.equal(client)
-    promiseB.should.eventually.equal(client)
+      .notify(->
+      promiseB.should.eventually.equal(client).notify(done)
+    )
     client._resolve()
 
-  specify "on discovery resolve after", ->
+  specify "on discovery resolve after", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._discovering = true
     client._resolve()
     promise = client.onDiscovery()
-    promise.should.eventually.equal(client)
+    promise.should.eventually.equal(client).notify(done)
 
-  specify "on discovery reject after", ->
+  specify "on discovery reject after", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._discovering = true
     message = "Test"
     client._rejectWithError(new Error(message))
     promise = client.onDiscovery()
-    promise.should.eventually.be.rejectedWith(Error, message)
+    promise.should.eventually.be.rejectedWith(Error, message).notify(done)
 
-  specify "discovery response status code not 200", ->
+  specify "discovery response status code not 200", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._onDiscoveryResult(null, {statusCode:404})
     promise = client.onDiscovery()
-    promise.should.eventually.be.rejectedWith(Error, "Failed to get discovery.json")
+    promise.should.eventually.be.rejectedWith(Error, "Failed to get discovery.json").notify(done)
 
-  specify "discovery response has error", ->
+  specify "discovery response has error", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     message = "Test"
     client._onDiscoveryResult(new Error(message), {statusCode:200})
     promise = client.onDiscovery()
-    promise.should.eventually.be.rejectedWith(Error, message)
+    promise.should.eventually.be.rejectedWith(Error, message).notify(done)
 
-  specify "discovery response has no body", ->
+  specify "discovery response has no body", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._onDiscoveryResult(null, {statusCode:200}, null)
     promise = client.onDiscovery()
-    promise.should.eventually.be.rejectedWith(Error, "Discovery body is empty")
+    promise.should.eventually.be.rejectedWith(Error, "Discovery body is empty").notify(done)
 
-  specify "discovery response has body", ->
+  specify "discovery response has body", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._onDiscoveryResult(null, {statusCode:200}, JSON.stringify(discovery))
     promise = client.onDiscovery()
-    promise.should.eventually.equal(client)
+    promise.should.eventually.equal(client).notify(done)
 
-  specify "discovery response has broken body (Array)", ->
+  specify "discovery response has broken body (Array)",(done)  ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._onDiscoveryResult(null, {statusCode:200}, "[]")
     promise = client.onDiscovery()
-    promise.should.eventually.be.rejectedWith(Error, "discovery.json body not an object")
+    promise.should.eventually.be.rejectedWith(Error, "discovery.json body not an object").notify(done)
 
-  specify "discovery response has broken body (date)", ->
+  specify "discovery response has broken body (date)", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._onDiscoveryResult(null, {statusCode:200}, new Date())
     promise = client.onDiscovery()
-    promise.should.eventually.be.rejectedWith(Error)
+    promise.should.eventually.be.rejectedWith(Error).notify(done)
 
-  specify "discovery response has broken body (no resources)", ->
+  specify "discovery response has broken body (no resources)",(done)  ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._onDiscoveryResult(null, {statusCode:200}, "{}")
     promise = client.onDiscovery()
-    promise.should.eventually.be.rejectedWith(Error, "Resources not an object")
+    promise.should.eventually.be.rejectedWith(Error, "Resources not an object").notify(done)
 
-  specify "do discovery", ->
+  specify "do discovery", (done) ->
     localClientModule = proxyquire( '../../../dist/fleet/discovery/client', {
       request:
         get: (url, callback) ->
@@ -262,29 +264,29 @@ describe "client", ->
     })
     client = localClientModule.getClient("localhost:4002", "/v1-alpha/")
     promise = client.doDiscovery()
-    promise.should.eventually.equal(client)
+    promise.should.eventually.equal(client).notify(done)
 
-  specify "do discovery after resolve", ->
+  specify "do discovery after resolve", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._resolve()
     promise = client.doDiscovery()
-    promise.should.eventually.equal(client)
+    promise.should.eventually.equal(client).notify(done)
 
-  specify "do discovery after reject", ->
+  specify "do discovery after reject", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     message = "Test"
     client._rejectWithError(new Error(message))
     promise = client.doDiscovery()
-    promise.should.eventually.be.rejectedWith(Error, message)
+    promise.should.eventually.be.rejectedWith(Error, message).notify(done)
 
-  specify "do discovery while discovering", ->
+  specify "do discovery while discovering", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._discovering = true
     promise = client.doDiscovery()
-    promise.should.eventually.equal(client)
+    promise.should.eventually.equal(client).notify(done)
     client._resolve()
 
-  specify "do discovery in constructor", ->
+  specify "do discovery in constructor", (done) ->
     localClientModule = proxyquire( '../../../dist/fleet/discovery/client', {
       request:
         get: (url, callback) ->
@@ -293,7 +295,7 @@ describe "client", ->
     client = localClientModule.getClient("localhost:4002", "/v1-alpha/", true)
     expect(client._discovering or client._complete).to.be.ok
     promise = client.doDiscovery()
-    promise.should.eventually.equal(client)
+    promise.should.eventually.equal(client).notify(done)
 
   specify "has schema returns true", ->
     client = clientModule.getClient("localhost:4002")

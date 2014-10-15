@@ -70,16 +70,14 @@ class DiscoveryMethod
       method: this.httpMethod
     method = this
     request(req, (err, response, body) ->
-      method._onResponse(err, response, body)
+      method._onResponse(err, response, body, deferred)
     )
   _onResponse: (err, response, body, deferred) ->
-    if not err and response.statusCode is 200
+    if not err and (response.statusCode < 200 or response.statusCode >= 300)
+      # TODO Implement redirection 301, 302[, 303], 304
       err = new Error("Status code returned #{response.statusCode}")
     if err
       deferred.reject(err)
-      return
-    if not this.response
-      deferred.resolve(true)
       return
     if not body and this.httpMethod isnt "GET"
       deferred.resolve()
