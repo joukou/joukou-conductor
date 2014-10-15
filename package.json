@@ -20,7 +20,8 @@
   "dependencies": {
     "q": "1.0.1",
     "request": "~2.45.0",
-    "lodash": "~2.4.1"
+    "lodash": "~2.4.1",
+    "schemajs": "~0.1.11"
   },
   "devDependencies": {
     "chai": "1.9.x",

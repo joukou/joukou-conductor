@@ -104,7 +104,7 @@ class DiscoveryMethod
       return a
     )
   _checkRequired: (params) ->
-    required = _.where(params, {required:true})
+    required = _.where(params, required: true)
     for key in required
       if not required[key].value
         throw new Error("the parameter #{key} is required")

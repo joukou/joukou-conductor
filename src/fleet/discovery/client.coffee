@@ -22,6 +22,7 @@ class DiscoveryClient
   batchPath: ""
   endpoint: ""
   resources: {}
+  schemas: {}
   # END Values from discover.json
   # START "Private" variables
   _complete: false
@@ -193,14 +194,21 @@ class DiscoveryClient
     if not _.isPlainObject(schemas)
       throw new TypeError("Schemas not an object")
     resultSchemas = {}
+    for schemaName of schemas
+      if not schemas.hasOwnProperty(schemaName)
+        continue
 
     resultSchemas
+  _resolveSchema: (schemaName, schema) ->
+
+  getSchema: (name) ->
+    return this.schema[name]
+  hasSchema: (name) ->
+    return !!this.schemas[name]
   getResource: (name) ->
-    return this.resource[name]
+    return this.resources[name]
   hasResource: (name) ->
-    if not this._complete
-      return false
-    return !!this.resource[name]
+    return !!this.resources[name]
 
 
 module.exports =
