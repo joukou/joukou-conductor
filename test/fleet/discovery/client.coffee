@@ -255,12 +255,12 @@ describe "client", ->
     promise.should.eventually.be.rejectedWith(Error, "Resources not an object")
 
   specify "do discovery", ->
-    clientModule = proxyquire( '../../../dist/fleet/discovery/client', {
+    localClientModule = proxyquire( '../../../dist/fleet/discovery/client', {
       request:
         get: (url, callback) ->
           callback(null, { statusCode: 200 }, JSON.stringify(discovery))
     })
-    client = clientModule.getClient("localhost:4002", "/v1-alpha/")
+    client = localClientModule.getClient("localhost:4002", "/v1-alpha/")
     promise = client.doDiscovery()
     promise.should.eventually.equal(client)
 
@@ -285,15 +285,85 @@ describe "client", ->
     client._resolve()
 
   specify "do discovery in constructor", ->
-    clientModule = proxyquire( '../../../dist/fleet/discovery/client', {
+    localClientModule = proxyquire( '../../../dist/fleet/discovery/client', {
       request:
         get: (url, callback) ->
           callback(null, { statusCode: 200 }, JSON.stringify(discovery))
     })
-    client = clientModule.getClient("localhost:4002", "/v1-alpha/", true)
+    client = localClientModule.getClient("localhost:4002", "/v1-alpha/", true)
     expect(client._discovering or client._complete).to.be.ok
     promise = client.doDiscovery()
     promise.should.eventually.equal(client)
+
+  specify "has schema returns true", ->
+    client = clientModule.getClient("localhost:4002")
+    client.schemas = {
+      test: "RANDOM"
+    }
+    expect(client.hasSchema("test")).to.be.ok
+
+  specify "get schema returns schema", ->
+    client = clientModule.getClient("localhost:4002")
+    client.schemas = {
+      test: "RANDOM"
+    }
+    expect(client.getSchema("test")).to.equal(client.schemas.test)
+
+  specify "has resource returns true", ->
+    client = clientModule.getClient("localhost:4002")
+    client.resources = {
+      test: "RANDOM"
+    }
+    expect(client.hasResource("test")).to.be.ok
+
+  specify "get resource returns resource", ->
+    client = clientModule.getClient("localhost:4002")
+    client.resources = {
+      test: "RANDOM"
+    }
+    expect(client.getResource("test")).to.equal(client.resources.test)
+
+  specify "resolve schema fails when not object", ->
+    client = clientModule.getClient("localhost:4002")
+    expect(client._resolveSchema("name", 1)).to.equal(null)
+
+  specify "resolve schema returns schema", ->
+    client = clientModule.getClient("localhost:4002")
+    schema = client._resolveSchema("name", {
+      id: "test"
+      type: "string"
+    })
+    expect(schema).to.exist
+    expect(schema).to.be.instanceof(Object)
+    expect(schema).to.include.key("id")
+    expect(schema.id).to.equal("test")
+    expect(schema.type).to.equal("string")
+
+  specify "resolve schemas throws error when not object", ->
+    client = clientModule.getClient("localhost:4002")
+    expect(client._resolveSchemas).to.Throw(TypeError, "Schemas not an object")
+
+  specify "resolve schemas returns expected", ->
+    client = clientModule.getClient("localhost:4002")
+    schemas = client._resolveSchemas(
+      schema:
+        id: "schema"
+        type: "string"
+    )
+    expect(schemas).to.include.key("schema")
+    expect(schemas.schema.id).to.equal("schema")
+    expect(schemas.schema.type).to.equal("string")
+
+  specify "schema doesn't resolve with no type", ->
+    client = clientModule.getClient("localhost:4002")
+    schemas = client._resolveSchemas(
+      schema:
+        id: "schema"
+    )
+    expect(schemas).to.not.include.key("schema")
+
+
+
 
 
 

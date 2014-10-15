@@ -17,6 +17,9 @@ class DiscoverySchema
     this.type = type
     this.properties = properties
     this.client = client
+    if not type
+      # We use type for validation
+      throw new Error("Type is required")
   validate: (value) ->
     if value is null or value is undefined
       return {

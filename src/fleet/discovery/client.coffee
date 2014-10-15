@@ -2,6 +2,7 @@ Q                 = require("q")
 request           = require("request")
 DiscoveryResource = require("./resource")
 DiscoveryMethod   = require("./method")
+DiscoverySchema   = require("./schema")
 _                 = require("lodash")
 
 class DiscoveryClient
@@ -130,6 +131,7 @@ class DiscoveryClient
     catch err
       this._rejectWithError(err)
       return
+    this._attachResources()
     this._resolve()
   onDiscovery: ->
     deferred = Q.defer()
@@ -164,7 +166,7 @@ class DiscoveryClient
   _resolveResource: (resourceName, resource) ->
     if not _.isPlainObject(resource) or not _.isPlainObject(resource.methods)
       return null
-    methods = {}
+    resultMethods = {}
     for methodName of resource.methods
       if not resource.methods.hasOwnProperty(methodName)
         continue
@@ -174,8 +176,8 @@ class DiscoveryClient
       catch
         continue
       if method
-        methods[methodName] = method
-    new DiscoveryResource(resourceName, methods, this)
+        resultMethods[methodName] = method
+    new DiscoveryResource(resourceName, resultMethods, this)
   _resolveMethod: (methodName, method) ->
     if not _.isPlainObject(method)
       return null
@@ -197,12 +199,25 @@ class DiscoveryClient
     for schemaName of schemas
       if not schemas.hasOwnProperty(schemaName)
         continue
-
-    resultSchemas
+      schema = null
+      try
+        schema = this._resolveSchema(schemaName, schemas[schemaName])
+      catch
+        continue
+      if schema
+        resultSchemas[schemaName] = schema
+    this.schemas = resultSchemas
   _resolveSchema: (schemaName, schema) ->
-
+    if not _.isPlainObject(schema)
+      return null
+    new DiscoverySchema(
+      schema.id,
+      schema.type,
+      schema.properties,
+      this
+    )
   getSchema: (name) ->
-    return this.schema[name]
+    return this.schemas[name]
   hasSchema: (name) ->
     return !!this.schemas[name]
   getResource: (name) ->
