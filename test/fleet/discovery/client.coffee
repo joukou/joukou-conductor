@@ -1,7 +1,5 @@
 proxyquire        = require("proxyquire")
 
-
-
 clientModule      = require( '../../../dist/fleet/discovery/client')
 assert            = require( 'assert' )
 chai              = require( 'chai' )
