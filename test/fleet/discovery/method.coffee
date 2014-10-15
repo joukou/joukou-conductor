@@ -177,7 +177,7 @@ describe "method", ->
     expect(deferred.promise).to.eventually.be.rejected.notify(done)
     method._onResponse(null, {statusCode:202}, [], deferred)
 
-  specify "group value doesnt qoutes to number on error", ->
+  specify "group value doesn't add quotes to number on error", ->
     method = new DiscoveryMethod("a", "test", "GET", "path", {
       key1: {
         required: true,

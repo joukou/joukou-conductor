@@ -90,7 +90,7 @@ class DiscoverySchema
     if this.schemaOptions
       return this.schemaOptions
     options = {}
-    for key in this.properties
+    for key of this.properties
       if not this.properties.hasOwnProperty(key)
         continue
       property = this.properties[key]
