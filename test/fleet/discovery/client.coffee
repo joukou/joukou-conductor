@@ -119,7 +119,7 @@ describe "client", ->
 
   specify "not resolve method id", ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
-    method = client._resolveMethod("get", {})
+    method = client._resolveMethod("get", {httpMethod:"GET", path:"TEST"})
     expect(method.id).to.not.equal("get")
 
   specify "on discovery resolves", ->

@@ -37,13 +37,41 @@ class DiscoveryClient
   ###
   constructor: (endpoint, basePath, doDiscovery) ->
     this.endpoint = endpoint
-    if not endpoint
-      throw new Error("Endpoint is required")
     this.basePath = basePath
-    if this.basePath is null or this.basePath is undefined
-      this.basePath = "/v1-alpha/"
+    this._validateEndpoint()
     if doDiscovery
       this.doDiscovery()
+  _validateEndpoint: ->
+    if not this.endpoint
+      throw new Error("Endpoint is required")
+    if typeof this.endpoint isnt "string"
+      throw new TypeError("Endpoint is expected to be a string")
+    if this.basePath is null or this.basePath is undefined
+      this.basePath = "/v1-alpha/"
+    else if typeof this.basePath isnt "string"
+      throw new TypeError("Base path is expected to be a string")
+    if this._lastCharacter(this.endpoint) is "/"
+      this.endpoint = this._stripLastCharacter(this.endpoint)
+    # Ensure basePath has at least "/"
+    # or is "/#{path}/"
+    if this._firstCharacter(this.basePath) isnt "/"
+      this.basePath = "/#{this.basePath}"
+    if this._lastCharacter(this.basePath) isnt "/"
+      this.basePath = "#{this.basePath}/"
+  _stripLastCharacter: (str) ->
+    if not str or typeof str isnt "string"
+      return ""
+    length = str.length
+    str.substring(0, length - 2)
+  _firstCharacter: (str) ->
+    if not str or typeof str isnt "string"
+      return null
+    return str.substring(0, 1)
+  _lastCharacter: (str) ->
+    if not str or typeof str isnt "string"
+      return null
+    length = str.length
+    str.substring(length - 1, length)
   doDiscovery: ->
     deferred = Q.defer()
     if this._complete
@@ -112,13 +140,18 @@ class DiscoveryClient
     else if this._discovering
       this._resolveOnDiscovery.push(deferred)
     deferred.promise
+  _attachResources: ->
+    for key of this.resources
+      if not this.resources.hasOwnProperty(key)
+        continue
+      this[key] = this.resources[key]
   _resolveDiscovery: (discovery) ->
     if not discovery or not _.isPlainObject(discovery)
-      throw new Error("Discovery not instanceof an object")
+      throw new TypeError("Discovery not instanceof an object")
     this._resolveResources(discovery.resources)
   _resolveResources: (resources) ->
     if not _.isPlainObject(resources)
-      throw new Error("Resources not an object")
+      throw new TypeError("Resources not an object")
     resultResources = {}
     for resourceName of resources
       if not resources.hasOwnProperty(resourceName)
@@ -134,10 +167,14 @@ class DiscoveryClient
     for methodName of resource.methods
       if not resource.methods.hasOwnProperty(methodName)
         continue
-      method = this._resolveMethod(methodName, resource.methods[methodName])
+      method = null
+      try
+        method = this._resolveMethod(methodName, resource.methods[methodName])
+      catch
+        continue
       if method
         methods[methodName] = method
-    new DiscoveryResource(resourceName, methods)
+    new DiscoveryResource(resourceName, methods, this)
   _resolveMethod: (methodName, method) ->
     if not _.isPlainObject(method)
       return null
@@ -149,8 +186,22 @@ class DiscoveryClient
       method.parameters,
       method.parameterOrder,
       method.request,
-      method.response
+      method.response,
+      this
     )
+  _resolveSchemas: (schemas) ->
+    if not _.isPlainObject(schemas)
+      throw new TypeError("Schemas not an object")
+    resultSchemas = {}
+
+    resultSchemas
+  getResource: (name) ->
+    return this.resource[name]
+  hasResource: (name) ->
+    if not this._complete
+      return false
+    return !!this.resource[name]
+
 
 module.exports =
   ###*
