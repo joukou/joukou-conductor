@@ -1,5 +1,5 @@
-schema = require("schemajs")
-
+schema  = require("schemajs")
+_       = require("lodash")
 class DiscoverySchema
   id: ""
   type: ""
@@ -29,7 +29,7 @@ class DiscoverySchema
       }
     if this.type is "string" and typeof value isnt string
       value = JSON.parse(value)
-    if this._checkType(value, this.type)
+    if DiscoverySchema.checkType(value, this.type)
       return {
         valid: false
         value: value
@@ -57,7 +57,7 @@ class DiscoverySchema
         valid: true
         value: value
       }
-  _checkType: (value, type) ->
+  @checkType: (value, type) ->
     # Valid types
     # http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.1
     switch type

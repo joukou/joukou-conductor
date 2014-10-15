@@ -1,6 +1,7 @@
-_       = require("lodash")
-Q       = require("q")
-request = require("request")
+_               = require("lodash")
+Q               = require("q")
+request         = require("request")
+DiscoverySchema = require("./schema")
 
 class DiscoveryMethod
   id: ""
@@ -80,8 +81,11 @@ class DiscoveryMethod
     if not this.response
       deferred.resolve(true)
       return
-    if not body
+    if not body and this.httpMethod isnt "GET"
       deferred.resolve()
+    else if not body
+      deferred.reject(new Error("No body"))
+      return
     jsonBody = null
     try
       jsonBody = JSON.parse(body)
@@ -96,17 +100,21 @@ class DiscoveryMethod
         return a
       if a.type is "string" and typeof b isnt "string"
         b = b.toString()
-      if a.type is typeof b
+      if DiscoverySchema.checkType(b, a.type)
         a.value = b
       else
+        if typeof b is "string"
+          b = "'#{b}'"
         throw new TypeError("#{b} is not typeof #{a.type}")
       a.value = b
       return a
     )
   _checkRequired: (params) ->
-    required = _.where(params, required: true)
-    for key in required
-      if not required[key].value
+    for key of params
+      val = params[key]
+      if not val.required
+        continue
+      if not val.value
         throw new Error("the parameter #{key} is required")
 
 

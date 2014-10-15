@@ -47,7 +47,7 @@ describe "resource", ->
       }
     }, {})
     expect(resource.hasMethod("methodName")).to.be.ok
-    
+
   specify "has method returns true", ->
     resource = new DiscoveryResource("name", {
       methodName: {
