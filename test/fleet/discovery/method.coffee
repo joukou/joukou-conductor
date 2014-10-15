@@ -132,14 +132,14 @@ describe "method", ->
   specify "on response with no body PUT", (done)  ->
     method = new DiscoveryMethod("a", "test", "PUT", "path", {})
     deferred = Q.defer()
-    expect(deferred.promise).to.eventually.be.fulfilled.notify(done)
+    expect(deferred.promise).to.eventually.equal(undefined).notify(done)
     method._onResponse(null, {statusCode:202}, null, deferred)
 
   specify "call method resolves", (done) ->
     method = new DiscoveryMethod("a", "test", "GET", "path", {})
     method._doRequest = (a, b, deferred) ->
       deferred.resolve()
-    expect(method.callMethod({})).to.eventually.fulfilled.notify(done)
+    expect(method.callMethod({})).to.eventually.equal(undefined).notify(done)
 
   specify "call method rejects", (done) ->
     method = new DiscoveryMethod("a", "test", "GET", "path", {})

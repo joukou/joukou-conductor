@@ -49,7 +49,7 @@ class DiscoveryMethod
       this._callMethod(params, deferred)
     catch err
       deferred.reject(err)
-    deferred.promise
+    return deferred.promise
   _callMethod: (params, deferred) ->
     params = params or {}
     if not _.isPlainObject(params)
@@ -63,14 +63,14 @@ class DiscoveryMethod
     this._doRequest(params, null, deferred)
   _doRequest: (params, body, deferred) ->
     req =
-      url: "#{this.client.endpoint}#{this.client.basePath}"
+      url: "#{this.client.endpoint}#{this.client.basePath}#{this.path}"
       # Will set content/type to application/json
       json: body
       qs: params
       method: this.httpMethod
     method = this
-    request(req, (err, response, body) ->
-      method._onResponse(err, response, body, deferred)
+    request(req, (error, response, body) ->
+      method._onResponse(error, response, body, deferred)
     )
   _onResponse: (err, response, body, deferred) ->
     if not err and (response.statusCode < 200 or response.statusCode >= 300)
@@ -81,6 +81,7 @@ class DiscoveryMethod
       return
     if not body and this.httpMethod isnt "GET"
       deferred.resolve()
+      return
     else if not body
       deferred.reject(new Error("No body"))
       return

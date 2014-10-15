@@ -1,3 +1,4 @@
+Q = require("q")
 
 class DiscoveryResource
   name: ""
@@ -21,7 +22,7 @@ class DiscoveryResource
     resource = this
     this[key] = ->
       method = resource.methods[key]
-      return method.callMethod.apply(method, arguments)
+      method.callMethod.apply(method, arguments)
   getMethod: (name) ->
     return this.methods[name]
   hasMethod: (name) ->

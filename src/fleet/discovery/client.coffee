@@ -111,6 +111,7 @@ class DiscoveryClient
     this._resolveOnDiscovery = []
   _onDiscoveryResult: (error, response, body) ->
     if not error and response.statusCode isnt 200
+      # TODO Implement redirection 301, 302[, 303], 304
       error = new Error("Failed to get discovery.json")
     if not error and not body
       error = new Error("Discovery body is empty")

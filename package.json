@@ -46,6 +46,7 @@
     "rewire": "2.1.x",
     "sinon": "1.10.x",
     "sinon-chai": "2.6.x",
-    "proxyquire": "~1.0.1"
+    "proxyquire": "~1.0.1",
+    "restify": "~2.8.3"
   }
 }
