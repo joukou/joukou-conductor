@@ -198,14 +198,24 @@ describe "client", ->
     )
     client._resolve()
 
-  specify "on discovery resolve after", (done) ->
+  specify "on discovery resolves if not started discovery", (done) ->
+    localClientModule = proxyquire( '../../../dist/fleet/discovery/client', {
+      request:
+        get: (url, callback) ->
+          callback(null, { statusCode: 200 }, JSON.stringify(discovery))
+    })
+    client = localClientModule.getClient("localhost:4002", "/v1-alpha/")
+    promise = client.onDiscovery()
+    promise.should.eventually.equal(client).notify(done)
+
+  specify "on discovery resolves after", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._discovering = true
     client._resolve()
     promise = client.onDiscovery()
     promise.should.eventually.equal(client).notify(done)
 
-  specify "on discovery reject after", (done) ->
+  specify "on discovery rejects after", (done) ->
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
     client._discovering = true
     message = "Test"
@@ -364,6 +374,19 @@ describe "client", ->
     )
     expect(schemas).to.not.include.key("schema")
 
+  specify "resource doesn't resolve if not an object", ->
+    client = clientModule.getClient("localhost:4002")
+    resources = client._resolveResources(
+      resource: 1
+    )
+    expect(resources).to.not.include.key("resource")
+
+  specify "schema doesn't resolve if not an object", ->
+    client = clientModule.getClient("localhost:4002")
+    schemas = client._resolveSchemas(
+      schema: 1
+    )
+    expect(schemas).to.not.include.key("schema")
 
 
 

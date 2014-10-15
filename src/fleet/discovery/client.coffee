@@ -142,6 +142,9 @@ class DiscoveryClient
         deferred.resolve(this)
     else if this._discovering
       this._resolveOnDiscovery.push(deferred)
+    else
+      # Discovery hasn't been started
+      return this.doDiscovery()
     deferred.promise
   _attachResources: ->
     for key of this.resources
