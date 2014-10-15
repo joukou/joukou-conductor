@@ -155,6 +155,269 @@ describe "schema", ->
       key: {},
     }).valid).to.be.not.ok
 
+  specify "schema generates for object ($ref)", ->
+    simpleSchema = new DiscoverySchema("simple", "object", {
+      key:
+        type: "string"
+    }, {})
+    schema = new DiscoverySchema("id", "object", {
+      key:
+        type: "object"
+        $ref: "SimpleSchema"
+    }, {
+      getSchema: ->
+        simpleSchema
+    })
+    options = schema._generateSchemaOptions()
+    expect(options.key).to.include.key("schema")
+    expect(options.key.schema).to.include.key("key")
+    expect(options.key.schema.key.type).to.equal("string")
+
+  specify "child schema fails to generate for object where $ref schema doesn't exist", ->
+    schema = new DiscoverySchema("id", "object", {
+      key:
+        type: "object"
+        $ref: "SimpleSchema"
+    }, {
+      getSchema: ->
+        null
+    })
+    options = schema._generateSchemaOptions()
+    expect(options.key).to.not.include.key("schema")
+
+  specify "schema validates for object ($ref)", ->
+    simpleSchema = new DiscoverySchema("simple", "object", {
+      key:
+        type: "string"
+        required: true
+    }, {})
+    schema = new DiscoverySchema("id", "object", {
+      key:
+        type: "object"
+        $ref: "SimpleSchema"
+    }, {
+      getSchema: ->
+        simpleSchema
+    })
+    expect(schema._validateSchema({
+      key:{
+        key: "value"
+      }
+    }).valid).to.be.ok
+    expect(schema._validateSchema({
+      key: {
+      }
+    }).valid).to.be.not.ok
+
+  specify "schema generates for array (items.$ref)", ->
+    simpleSchema = new DiscoverySchema("simple", "object", {
+      key:
+        type: "string"
+        required: true
+    }, {})
+    schema = new DiscoverySchema("id", "object", {
+      key:
+        type: "array"
+        items:
+          $ref: "SimpleSchema"
+    }, {
+      getSchema: ->
+        simpleSchema
+    })
+    options = schema._generateSchemaOptions()
+    expect(options.key).to.include.key("schema")
+    expect(options.key.schema).to.include.key("schema")
+    expect(options.key.schema.schema).to.include.key("key")
+    expect(options.key.schema.schema.key.type).to.equal("string")
+
+  specify "schema generates for array (items.$ref as array)", ->
+    simpleSchema = new DiscoverySchema("simple", "array", {}, {})
+    schema = new DiscoverySchema("id", "object", {
+      key:
+        type: "array"
+        items:
+          $ref: "SimpleSchema"
+    }, {
+      getSchema: ->
+        simpleSchema
+    })
+    options = schema._generateSchemaOptions()
+    expect(options.key).to.include.key("schema")
+    expect(options.key.schema.type).to.equal("array")
+
+  specify "schema generates for array (items.$ref)", ->
+    simpleSchema = new DiscoverySchema("simple", "object", {
+      key:
+        type: "string"
+        required: true
+    }, {})
+    schema = new DiscoverySchema("id", "object", {
+      key:
+        type: "array"
+        items:
+          $ref: "SimpleSchema"
+    }, {
+      getSchema: ->
+        simpleSchema
+    })
+    options = schema._generateSchemaOptions()
+    expect(options.key).to.include.key("schema")
+    expect(options.key.schema).to.include.key("schema")
+    expect(options.key.schema.schema).to.include.key("key")
+    expect(options.key.schema.schema.key.type).to.equal("string")
+
+  specify "child schema fails to generate for array where items.$ref schema doesn't exist", ->
+    schema = new DiscoverySchema("id", "object", {
+      key:
+        type: "array"
+        items:
+          $ref: "SimpleSchema"
+    }, {
+      getSchema: ->
+        null
+    })
+    options = schema._generateSchemaOptions()
+    expect(options.key).to.not.include.key("schema")
+
+  specify "schema validates for array (items.$ref)", ->
+    simpleSchema = new DiscoverySchema("simple", "object", {
+      key:
+        type: "string"
+        required: true
+    }, {})
+    schema = new DiscoverySchema("id", "object", {
+      key:
+        type: "array"
+        items:
+          $ref: "SimpleSchema"
+    }, {
+      getSchema: ->
+        simpleSchema
+    })
+    expect(schema._validateSchema({
+      key:[
+        {
+          key: "value"
+        },
+        {
+          key: "value"
+        }
+      ]
+    }).valid).to.be.ok
+    expect(schema._validateSchema({
+      key: [
+        {
+          val: "value"
+        }
+      ]
+    }).valid).to.be.not.ok
+
+  specify "schema fails to attach child if property type not object", ->
+    options = {}
+    key = "test"
+    schema = new DiscoverySchema("id", "object", {}, {})
+    schema._attachChildSchema(options, {
+      type: "string"
+    }, key)
+    expect(options).to.not.include.key(key)
+
+  specify "validate object schema", ->
+    schema = new DiscoverySchema("id", "object", {
+      key: {
+        required: true,
+        type: "string"
+      }
+    }, {})
+    expect(schema.validate({
+      key:"value"
+    }).valid).to.be.ok
+
+  specify "doesn't validate object schema", ->
+    schema = new DiscoverySchema("id", "object", {
+      key: {
+        required: true,
+        type: "string"
+      }
+    }, {})
+    expect(schema.validate({
+      key:1
+    }).valid).to.be.not.ok
+
+  specify "doesn't validate undefined", ->
+    schema = new DiscoverySchema("id", "object", {}, {})
+    validation = schema.validate(undefined)
+    expect(validation.valid).to.be.not.ok
+    expect(validation.noValue).to.be.ok
+
+  specify "doesn't validate null", ->
+    schema = new DiscoverySchema("id", "object", {}, {})
+    validation = schema.validate(null)
+    expect(validation.valid).to.be.not.ok
+    expect(validation.noValue).to.be.ok
+
+  specify "changes type of object to string", ->
+    schema = new DiscoverySchema("id", "string", {}, {})
+    validation = schema.validate({})
+    expect(validation.valid).to.be.ok
+    expect(validation.value).to.equal("{}")
+
+  specify "changes type of array to string", ->
+    schema = new DiscoverySchema("id", "string", {}, {})
+    validation = schema.validate([])
+    expect(validation.valid).to.be.ok
+    expect(validation.value).to.equal("[]")
+
+  specify "changes type of date to string", ->
+    schema = new DiscoverySchema("id", "string", {}, {})
+    date = new Date()
+    validation = schema.validate(date)
+    expect(validation.valid).to.be.ok
+    expect(validation.value).to.equal(JSON.stringify(date))
+
+  specify "asserts type invalid", ->
+    schema = new DiscoverySchema("id", "number", {}, {})
+    date = new Date()
+    validation = schema.validate("string")
+    expect(validation.valid).to.be.not.ok
+
+  specify "asserts throws error when child type not an object if property is", ->
+    simpleSchema = new DiscoverySchema("simple", "array", {}, {})
+    schema = new DiscoverySchema("id", "object", {}, {
+      getSchema: ->
+        simpleSchema
+    })
+    expect(->
+      schema._attachChildSchema({},{
+        type:"object",
+        $ref:"simple"
+      }, "key")
+    )
+      .to
+      .Throw(Error, "Child schema must be an object is property is an object")
+
+  specify "generates child object schemas for array", ->
+    simpleSchema = new DiscoverySchema("simple", "object", {
+      key:
+        type:"string"
+        required: true
+    }, {})
+    schema = new DiscoverySchema("id", "object", {
+      key:
+        type:"array",
+        items:
+          $ref: "schema"
+    }, {
+      getSchema: ->
+        simpleSchema
+    })
+    options = schema._generateSchemaOptions()
+    expect(options.key.schema).to.include.key("schema")
+    expect(options.key.schema.schema).to.include.key("key")
+    expect(options.key.schema.schema.key.type).to.equal("string")
+    expect(options.key.schema.schema.key.required).to.be.ok
+
+
+
 
 
 

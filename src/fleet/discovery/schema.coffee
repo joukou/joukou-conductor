@@ -1,5 +1,6 @@
-schema  = require("schemajs")
-_       = require("lodash")
+schemajs  = require("schemajs")
+_         = require("lodash")
+
 class DiscoverySchema
   id: ""
   type: ""
@@ -26,10 +27,11 @@ class DiscoverySchema
         valid: false
         value: value
         reason: "Value is null or undefined"
+        noValue: true
       }
-    if this.type is "string" and typeof value isnt string
-      value = JSON.parse(value)
-    if DiscoverySchema.checkType(value, this.type)
+    if this.type is "string" and typeof value isnt "string"
+      value = JSON.stringify(value)
+    if not DiscoverySchema.checkType(value, this.type)
       return {
         valid: false
         value: value
@@ -44,13 +46,10 @@ class DiscoverySchema
         }
       else
         values = _.values(validation.errors)
-        reason = "request is not valid"
-        if values.length
-          reason = values[0]
         return {
           valid: false
           value: value
-          reason: reason
+          reason: values[0]
         }
     else
       return {
@@ -82,10 +81,10 @@ class DiscoverySchema
     this._generateSchema()
     return this.schema.validate(value)
   _generateSchema: ->
-    if not schema.types.any
-      schema.types.any = ->
+    if not schemajs.types.any
+      schemajs.types.any = ->
         true
-    this.schema = this.schema or schema.create(this._generateSchemaOptions())
+    this.schema = this.schema or schemajs.create(this._generateSchemaOptions())
   _generateSchemaOptions: ->
     if this.schemaOptions
       return this.schemaOptions
@@ -94,56 +93,48 @@ class DiscoverySchema
       if not this.properties.hasOwnProperty(key)
         continue
       property = this.properties[key]
-      if property.type is "array"
-        options[key] = {
-          type: "array",
-          required: !!property.required
-        }
-        if property.items not instanceof Object
-          continue
-        if not property.items.$ref
-          # TODO implement other than $ref
-          # Fleet API only uses $ref currently
-          continue
-        ref = property.items.$ref
-        schema = this.client.getSchema(ref)
-        # We don't want circular references
-        if not schema or schema is this
-          continue
-        options[key].schema = this
-          .client
-          .getSchema(ref)
-          ._generateSchemaOptions()
-      else if property.type is "object"
-        options[key] = {
-          type: "object",
-          required: !!property.required
-        }
-        if not property.$ref
-          # TODO implement other than $ref
-          continue
-        ref = property.$ref
-        schema = this.client.getSchema(ref)
-        # We don't want circular references
-        if not schema or schema is this
-          continue
-        options[key].schema = this
-          .client
-          .getSchema(ref)
-          ._generateSchemaOptions()
+      if property.type is "array" or property.type is "object"
+        this._attachChildSchema(options, property, key)
       else
-        type = null
-        # "integer" is the only type that is different
-        # https://github.com/eleith/schemajs#schematypes
-        # I have extended schema to accept type "any"
-        if property.type is "integer"
-          type = "int"
-        else
-          type = property.type
         options[key] = {
-          type: type,
+          type: this._correctType(property.type),
           required: !!property.required
         }
     this.schemaOptions = options
-
+  _correctType: (type) ->
+    # "integer" is the only type that is different
+    # https://github.com/eleith/schemajs#schematypes
+    # I have extended schema to accept type "any"
+    if type is "integer"
+      return "int"
+    return type
+  _attachChildSchema: (options, property, key) ->
+    if property.type isnt "object" and property.type isnt "array"
+      return
+    options[key] = {
+      type: property.type,
+      required: !!property.required
+    }
+    ref = null
+    if property.type is "array" and property.items instanceof Object
+      ref = property.items.$ref
+    else if property.type is "object"
+      ref = property.$ref
+    if not ref
+      return
+    childSchema = this.client.getSchema(ref)
+    # We don't want circular references
+    if not childSchema or childSchema is this
+      return
+    if property.type is "object" and childSchema.type isnt "object"
+      throw new Error("Child schema must be an object is property is an object")
+    if childSchema.type is "object"
+      if property.type is "object"
+        options[key].schema = childSchema._generateSchemaOptions()
+      else # if property.type is "array"
+        options[key].schema =
+          schema: childSchema._generateSchemaOptions()
+          type: childSchema.type
+    else
+      options[key].schema = type: this._correctType(childSchema.type)
 module.exports = DiscoverySchema
