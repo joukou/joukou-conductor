@@ -1,4 +1,8 @@
-clientModule      = require( '../../../dist/fleet/discovery/client' )
+proxyquire        = require("proxyquire")
+
+
+
+clientModule      = require( '../../../dist/fleet/discovery/client')
 assert            = require( 'assert' )
 chai              = require( 'chai' )
 chaiAsPromised    = require( 'chai-as-promised' )
@@ -201,8 +205,12 @@ describe "client", ->
     promise.should.eventually.be.rejectedWith(Error, "Resources not an object")
 
   specify "do discovery", ->
+    clientModule = proxyquire( '../../../dist/fleet/discovery/client', {
+      request:
+        get: (url, callback) ->
+          callback(null, { statusCode: 200 }, JSON.stringify(discovery))
+    })
     client = clientModule.getClient("localhost:4002", "/v1-alpha/")
-    client._request.get = (url, callback) -> callback(null, { statusCode: 200 }, JSON.stringify(discovery))
     promise = client.doDiscovery()
     promise.should.eventually.equal(client)
 
@@ -225,6 +233,17 @@ describe "client", ->
     promise = client.doDiscovery()
     promise.should.eventually.equal(client)
     client._resolve()
+
+  specify "do discovery in constructor", ->
+    clientModule = proxyquire( '../../../dist/fleet/discovery/client', {
+      request:
+        get: (url, callback) ->
+          callback(null, { statusCode: 200 }, JSON.stringify(discovery))
+    })
+    client = clientModule.getClient("localhost:4002", "/v1-alpha/", true)
+    expect(client._discovering or client._complete).to.be.ok
+    promise = client.doDiscovery()
+    promise.should.eventually.equal(client)
 
 
 

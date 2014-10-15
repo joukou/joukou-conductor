@@ -32,14 +32,18 @@ class DiscoveryClient
   # END "Private" variables
   ###*
   @param {string} endpoint
+  @param {string} [basePath='/v1-alpha/']
+  @param {boolean} [doDiscovery=false]
   ###
-  constructor: (endpoint, basePath) ->
+  constructor: (endpoint, basePath, doDiscovery) ->
     this.endpoint = endpoint
     if not endpoint
       throw new Error("Endpoint is required")
     this.basePath = basePath
     if this.basePath is null or this.basePath is undefined
       this.basePath = "/v1-alpha/"
+    if doDiscovery
+      this.doDiscovery()
   doDiscovery: ->
     deferred = Q.defer()
     if this._complete
@@ -54,9 +58,9 @@ class DiscoveryClient
     this._discovering = true
     this._doDiscoveryRequest()
     deferred.promise
-  _doDiscoveryRequest:  ->
+  _doDiscoveryRequest: ->
     client = this
-    request.get(
+    this._request.get(
       "#{this.endpoint}#{this.basePath}discovery.json",
     (error, response, body) ->
       client._onDiscoveryResult(error, response, body)
@@ -151,6 +155,8 @@ class DiscoveryClient
 module.exports =
   ###*
   @param {string} endpoint
+  @param {string} [basePath='/v1-alpha/']
+  @param {boolean} [doDiscovery=false]
   ###
-  getClient: (endpoint, basePath) ->
-    new DiscoveryClient(endpoint, basePath)
+  getClient: (endpoint, basePath, doDiscovery) ->
+    new DiscoveryClient(endpoint, basePath, doDiscovery)

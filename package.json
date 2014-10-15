@@ -44,6 +44,7 @@
     "lazypipe": "0.2.x",
     "rewire": "2.1.x",
     "sinon": "1.10.x",
-    "sinon-chai": "2.6.x"
+    "sinon-chai": "2.6.x",
+    "proxyquire": "~1.0.1"
   }
 }
