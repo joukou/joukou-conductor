@@ -11,6 +11,7 @@ class DiscoveryResource
     this.name = name
     this.methods = methods
     this.client = client
+    this._attachMethods()
   _attachMethods: ->
     for key of this.methods
       if not this.methods.hasOwnProperty(key)
