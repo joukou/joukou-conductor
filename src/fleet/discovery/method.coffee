@@ -98,7 +98,7 @@ class DiscoveryMethod
     if this.response instanceof Object and this.response.$ref
       this._resolveWithSchemaResponse(jsonBody, deferred, currentRequest)
     else
-    deferred.resolve(jsonBody)
+      deferred.resolve(jsonBody)
   _resolveWithSchemaResponse: (jsonBody, deferred, currentRequest) ->
     schema = this.client.getSchema(this.response.$ref)
     # No schema, no check
@@ -132,7 +132,7 @@ class DiscoveryMethod
     currentRequest.qs["nextPageToken"] = jsonBody["nextPageToken"]
     childDeferred = Q.defer()
     this._doRequest(null, null, childDeferred, currentRequest)
-    childDeferred.then((childValues) ->
+    childDeferred.promise.then((childValues) ->
       deferred.resolve(values.concat(childValues))
     ).fail( ->
       # TODO do something in this case where the next page

@@ -190,6 +190,214 @@ describe "method", ->
       })
     ).to.Throw(Error, "1 is not typeof array" )
 
+  specify "do request uses previous request if provided", (done)  ->
+    localDiscoveryMethod = proxyquire( '../../../dist/fleet/discovery/method', {
+      request: (options, callback) ->
+        callback(null, { statusCode: 404 })
+    })
+    method = new localDiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/"
+    }
+    params = {
+      value: "value"
+    }
+    req = {
+      test: true
+    }
+    deferred = Q.defer()
+    method._onResponse = (err, response, body, deferred, currentRequest) ->
+      expect(currentRequest.qs).to.not.exist
+      expect(currentRequest.test).to.equal(true)
+      deferred.resolve()
+    method._doRequest(params, {}, deferred, req)
+    expect(deferred.promise).to.eventually.be.fulfilled.notify(done)
+
+  specify "do request checks for response $ref", (done)  ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/"
+    }
+    method.response = {
+      $ref: "UnitPage"
+    }
+    deferred = Q.defer()
+    method._resolveWithSchemaResponse = (jsonBody, deferred, currentRequest) ->
+      deferred.resolve(true)
+    method._onResponse(null, statusCode: 200, '{"values":[]}', deferred)
+    expect(deferred.promise).to.eventually.equal(true).notify(done)
+
+  specify "resolve with schema resolves when schema not found", (done) ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/",
+      getSchema: ->
+        return null
+    }
+    method.response = {
+      $ref: "UnitPage"
+    }
+    deferred = Q.defer()
+    value = {units:[{name:"test"}]}
+    method._resolveWithSchemaResponse(value, deferred, {})
+    expect(deferred.promise).to.eventually.equal(value).notify(done)
+
+  specify "resolve with schema resolves when schema found, but no next token", (done) ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/",
+      getSchema: ->
+        return properties:
+          units:
+            type: "array"
+    }
+    method.response = {
+      $ref: "UnitPage"
+    }
+    deferred = Q.defer()
+    value = {units:[{name:"test"}]}
+    method._resolveWithSchemaResponse(value, deferred, {})
+    expect(deferred.promise).to.eventually.equal(value).notify(done)
+
+  specify "resolve with schema resolves when next page token exists, but not in response", (done) ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/",
+      getSchema: ->
+        return properties:
+          units:
+            type: "array"
+          nextPageToken:
+            type: "string"
+    }
+    method.response = {
+      $ref: "UnitPage"
+    }
+    deferred = Q.defer()
+    value = {units:[{name:"test"}]}
+    method._resolveWithSchemaResponse(value, deferred, {})
+    expect(deferred.promise).to.eventually.equal(value.units).notify(done)
+
+  specify "resolve with schema resolves when next page token exists, but no other key", (done) ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/",
+      getSchema: ->
+        return {
+        properties:
+          nextPageToken:
+            type: "string"
+        }
+    }
+    method.response = {
+      $ref: "UnitPage"
+    }
+    deferred = Q.defer()
+    value = {units:[{name:"test"}]}
+    method._resolveWithSchemaResponse(value, deferred, {})
+    expect(deferred.promise).to.eventually.equal(value).notify(done)
+
+  specify "resolve with schema resolves when next page token exists, but property isn't an array", (done) ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/",
+      getSchema: ->
+        return {
+        properties:
+          units:
+            type: "object"
+          nextPageToken:
+            type: "string"
+        }
+    }
+    method.response = {
+      $ref: "UnitPage"
+    }
+    deferred = Q.defer()
+    value = {units:[{name:"test"}]}
+    method._resolveWithSchemaResponse(value, deferred, {})
+    expect(deferred.promise).to.eventually.equal(value).notify(done)
+
+  specify "resolve with schema resolves when value isn't the expected", (done) ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/",
+      getSchema: ->
+        return {
+        properties:
+          units:
+            type: "array"
+          nextPageToken:
+            type: "string"
+        }
+    }
+    method.response = {
+      $ref: "UnitPage"
+    }
+    deferred = Q.defer()
+    value = {units:{name:"test"}}
+    method._resolveWithSchemaResponse(value, deferred, {})
+    expect(deferred.promise).to.eventually.equal(value).notify(done)
+
+  specify "gets next page", (done) ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/",
+      getSchema: ->
+        return {
+        properties:
+          units:
+            type: "array"
+          nextPageToken:
+            type: "string"
+        }
+    }
+    method.response = {
+      $ref: "UnitPage"
+    }
+    value = {units:[{name:"test"}], nextPageToken: "next"}
+    method._doRequest = (a, b, lastDeferred, previousRequest) ->
+      expect(previousRequest.qs.nextPageToken).to.equal(value.nextPageToken)
+      lastDeferred.resolve(value.units)
+    deferred = Q.defer()
+    method._resolveWithSchemaResponse(value, deferred, {})
+    expect(deferred.promise).to.eventually.have.lengthOf(2).notify(done)
+
+  specify "returns first page if next page fails", (done) ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.client = {
+      endpoint: "localhost:4000",
+      basePath: "/",
+      getSchema: ->
+        return {
+        properties:
+          units:
+            type: "array"
+          nextPageToken:
+            type: "string"
+        }
+    }
+    method.response = {
+      $ref: "UnitPage"
+    }
+    value = {units:[{name:"test"}], nextPageToken: "next"}
+    method._doRequest = (a, b, lastDeferred, previousRequest) ->
+      expect(previousRequest.qs.nextPageToken).to.equal(value.nextPageToken)
+      lastDeferred.reject()
+    deferred = Q.defer()
+    method._resolveWithSchemaResponse(value, deferred, {})
+    expect(deferred.promise).to.eventually.have.lengthOf(1).notify(done)
+
+
 
 
 
