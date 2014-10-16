@@ -1,6 +1,7 @@
 proxyquire        = require("proxyquire")
 
 DiscoveryMethod   = require( '../../../dist/fleet/discovery/method')
+DiscoverySchema   = require( '../../../dist/fleet/discovery/schema')
 chai              = require( 'chai' )
 chaiAsPromised    = require( 'chai-as-promised' )
 chai.use(chaiAsPromised)
@@ -397,6 +398,106 @@ describe "method", ->
     method._resolveWithSchemaResponse(value, deferred, {})
     expect(deferred.promise).to.eventually.have.lengthOf(1).notify(done)
 
+  specify "groups values with enum works", ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {
+      key1: {
+        type: "string"
+        enum: [
+          "test",
+          "test2"
+        ]
+      }
+    })
+    expect( ->
+      method._groupValue({
+        key1: "test"
+      })
+    ).to.not.Throw()
+
+  specify "groups values with enum fails", ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {
+      key1: {
+        type: "string"
+        enum: [
+          "test",
+          "test2"
+        ]
+      }
+    })
+    expect( ->
+      method._groupValue({
+        key1: "test3"
+      })
+    ).to.Throw(Error, "'test3' is not one of 'test', 'test2'")
+
+  specify "method resolves no body if no request required", ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    expect(method._getRequestBody({})).to.equal(null)
+
+  specify "method resolves no body if no request required (no $ref)", ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.request = {}
+    expect(method._getRequestBody({})).to.equal(null)
+
+  specify "method throws error if request required but no body", ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.request = {
+      $ref: "Unit"
+    }
+    expect(->
+      method._getRequestBody()
+    ).to.Throw("Request body is required")
+
+  specify "method uses body if can't find schema, but request required", ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.request = {
+      $ref: "Unit"
+    }
+    method.client = {
+      getSchema: ->
+        return null
+    }
+    value = {val:1}
+    expect(method._getRequestBody(value)).to.equal(value)
+
+  specify "method uses body if valid", ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.request = {
+      $ref: "Unit"
+    }
+    simpleSchema = new DiscoverySchema("simple", "object", {
+      key:
+        type: "string"
+        required: true
+    }, {})
+    method.client = {
+      getSchema: ->
+        return simpleSchema
+    }
+    value = {key:"value"}
+    body = method._getRequestBody(value)
+    expect(body).to.exist
+    expect(body).to.include.key("key")
+    expect(body.key).to.equal(value.key)
+
+  specify "method throws error if value has error", ->
+    method = new DiscoveryMethod("a", "test", "GET", "path", {})
+    method.request = {
+      $ref: "Unit"
+    }
+    simpleSchema = new DiscoverySchema("simple", "object", {
+      key:
+        type: "string"
+        required: true
+    }, {})
+    method.client = {
+      getSchema: ->
+        return simpleSchema
+    }
+    value = {key:null}
+    expect(->
+      method._getRequestBody(value)
+    ).to.Throw(Error)
 
 
 

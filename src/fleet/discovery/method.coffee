@@ -41,16 +41,16 @@ class DiscoveryMethod
   @param {Object} params
   @returns {Promise}
   ###
-  callMethod: (params) ->
+  callMethod: (params, body) ->
     deferred = Q.defer()
     try
       # Wrap the whole function or it is just
       # Bloated with try catches
-      this._callMethod(params, deferred)
+      this._callMethod(params, body, deferred)
     catch err
       deferred.reject(err)
     return deferred.promise
-  _callMethod: (params, deferred) ->
+  _callMethod: (params, body, deferred) ->
     params = params or {}
     if not _.isPlainObject(params)
       throw new TypeError("Params is expected to be an Object")
@@ -60,7 +60,21 @@ class DiscoveryMethod
     params = _.transform(params, (result, value, key) ->
       result[key] = value.value
     )
-    this._doRequest(params, null, deferred)
+    this._doRequest(params, this._getRequestBody(body), deferred)
+  _getRequestBody: (body) ->
+    if not _.isPlainObject(this.request) or not this.request.$ref
+      # TODO implement for not $ref
+      # Request has no body
+      return null
+    if not body or not _.isPlainObject(body)
+      throw new Error("Request body is required")
+    schema = this.client.getSchema(this.request.$ref)
+    if not schema
+      return body
+    validation = schema.validate(body)
+    if validation.valid
+      return validation.value
+    throw new Error(validation.reason)
   _doRequest: (params, requestBody, deferred, previousRequest) ->
     currentRequest = null
     if not previousRequest
@@ -139,7 +153,6 @@ class DiscoveryMethod
       # fails, for now return
       deferred.resolve(values)
     )
-
   _groupValue: (params) ->
     params = _.merge(this.parameters, params, (a, b) ->
       a = _.clone(a)
@@ -154,6 +167,20 @@ class DiscoveryMethod
           b = "'#{b}'"
         throw new TypeError("#{b} is not typeof #{a.type}")
       a.value = b
+      if a.type isnt "string" or not _.isArray(a.enum)
+        return a
+      # We have an enum, restrict a.value to
+      # the values in enum
+      exists = false
+      for val in a.enum
+        if val.toLowerCase() is a.value.toLowerCase()
+          a.value = val
+          exists = true
+          break
+      if not exists
+        throw new Error(
+          "'#{a.value}' is not one of '#{a.enum.join("', '")}'"
+        )
       return a
     )
   _checkRequired: (params) ->

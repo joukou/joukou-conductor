@@ -41,8 +41,62 @@ class DiscoveryClient
     this.endpoint = endpoint
     this.basePath = basePath
     this._validateEndpoint()
+    client = this
+    Object.defineProperty(this, "on", {
+      get: ->
+        client._onGet()
+    })
     if doDiscovery
       this.doDiscovery()
+  _onGet: ->
+    client = this
+    {
+      schema: (schemaName) ->
+        deferred = Q.defer()
+        client.onDiscovery().then(->
+          if not client.hasSchema(schemaName)
+            deferred
+              .reject(new Error("No schema #{schemaName}"))
+            return
+          deferred
+          .resolve(client.getSchema(schemaName))
+        ).fail(deferred.reject)
+        return deferred.promise
+      resource: (resourceName) ->
+        deferred = Q.defer()
+        client.onDiscovery().then(->
+          if not client.hasResource(resourceName)
+            deferred
+              .reject(new Error("No resource #{resourceName}"))
+            return
+          deferred
+          .resolve(client.getResource(resourceName))
+        ).fail(deferred.reject)
+        return deferred.promise
+      method: (resourceName, methodName, args) ->
+        deferred = Q.defer()
+        this.resource(resourceName).then((resource) ->
+          if not resource.hasMethod(methodName)
+            deferred
+              .reject(new Error(
+                "No method #{methodName} for resource #{resourceName}"
+              ))
+            return
+          method = resource.wrapCallMethod(methodName)
+          if not args
+            deferred.resolve(method)
+            return
+          if not _.isArray(args)
+            deferred.reject(new Error(
+              "Arguments must be an array"
+            ))
+            return
+          method.apply(resource, args)
+            .then(deferred.resolve)
+            .fail(deferred.reject)
+        ).fail(deferred.reject)
+        return deferred.promise
+    }
   _validateEndpoint: ->
     if not this.endpoint
       throw new Error("Endpoint is required")
