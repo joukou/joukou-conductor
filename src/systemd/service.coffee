@@ -7,8 +7,8 @@ class SystemDService extends Common
     super("Service")
 
   addEnvironment: (name, value) ->
-    @assertString(name, "name")
-    @assertString(value, "value")
+    SystemDService.assertString(name, "name")
+    SystemDService.assertString(value, "value")
     @addPair("Environment", "#{name}=#{value}")
 
   # http://0pointer.de/public/systemd-man/systemd.service.html#Type=
@@ -76,9 +76,6 @@ class SystemDService extends Common
 
   addUser: (value) ->
     @addPair("User", value)
-
-
-
 
   addLimitNoFile: (value) ->
     if typeof value is "number"
