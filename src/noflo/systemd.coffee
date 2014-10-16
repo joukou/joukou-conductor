@@ -1,7 +1,7 @@
 SystemDUnitFile = require("../systemd/unit-file")
 _               = require("lodash")
 
-createFromSchema: (input,
+createFromSchema = (input,
                    machineID,
                    joukouMessageQueAddress,
                    joukouApiAddress) ->
@@ -11,6 +11,10 @@ createFromSchema: (input,
     throw new Error("machineID is required")
   if typeof machineID isnt "string"
     throw new TypeError("machineID is not a string")
+  if typeof joukouMessageQueAddress isnt "string"
+    throw new TypeError("joukouMessageQueAddress is not a string")
+  if typeof joukouApiAddress isnt "string"
+    throw new TypeError("joukouApiAddress is not a string")
   if not _.isPlainObject(input.properties)
     throw new TypeError("input.properties is not an object")
   if not _.isPlainObject(input.processes)
@@ -23,7 +27,14 @@ createFromSchema: (input,
   connections = _.cloneDeep(input.connections)
   checkForBrokenConnections(connections)
   processes = _.cloneDeep(input.processes)
-  return createOptions(name, processes, connections)
+  return createOptions(
+    name,
+    processes,
+    connections,
+    machineID,
+    joukouMessageQueAddress,
+    joukouApiAddress
+  )
 
 createOptions = (name,
                  processes,
@@ -42,16 +53,16 @@ createOptions = (name,
     }
   ]
   ###
-  for processKey in input.processes
-    if not input.hasOwnProperty(processKey)
+  for processKey of processes
+    if not processes.hasOwnProperty(processKey)
       continue
-    process = input.processes[processKey]
+    process = processes[processKey]
     unit = {
       process: process
       processKey: processKey
       machineID: machineID
       dockerContainer: process.component
-      ports: this.findPorts(connections, processKey)
+      ports: findPorts(connections, processKey)
     }
     generateConnectionKeys(unit.ports)
     file = createFile(
@@ -94,36 +105,39 @@ generateConnectionKeys = (ports) ->
 checkForBrokenConnections = (connections) ->
   i = 0
   while i < connections.length
-    i++
     connection = connections[i]
+    i++
     if not _.isPlainObject(connection)
       continue
     target = connection["tgt"]
     source = connection["src"]
     if not target and not source
       continue
-    if not _.isPlainObject(target)
-      throw new Error("No target for connection #{i}")
-    if not _.isPlainObject(source)
-      throw new Error("No source for connection #{i}")
+    #Comment out for now so we can do demos with photobooth.json
+    #if not _.isPlainObject(target)
+    #  throw new Error("No target for connection #{i}")
+    #if not _.isPlainObject(source)
+    #  throw new Error("No source for connection #{i}")
 
 findPorts = (connections, processKey) ->
   result = []
   for connection in connections
-    if connection.tgt.process is processKey
-      result.push({
-        type: "INPORT"
-        name: connection.tgt.port
-        port: connection.tgt
-        connection: connection
-      })
-    if connection.src.process is processKey
-      result.push({
-        type: "OUTPORT"
-        name: connection.src.port
-        port: connection.src
-        connection: connection
-      })
+    if connection.tgt
+      if connection.tgt.process is processKey
+        result.push({
+          type: "INPORT"
+          name: connection.tgt.port
+          port: connection.tgt
+          connection: connection
+        })
+    if connection.src
+      if connection.src.process is processKey
+        result.push({
+          type: "OUTPORT"
+          name: connection.src.port
+          port: connection.src
+          connection: connection
+        })
   result
 
 module.exports =

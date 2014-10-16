@@ -9,11 +9,15 @@ class SystemDUnitFile
     Object.defineProperty(this, "options", {
       get: this._getOptions
     })
+    this.service = new Service()
+    this.unit = new Unit()
+    this.xFleet = new XFleet()
+    this.install = new Install()
 
-  service: new Service()
-  unit: new Unit()
-  xFleet: new XFleet()
-  install: new Install()
+  service: null
+  unit: null
+  xFleet: null
+  install: null
 
   _getOptions: ->
     serviceOptions = this.service.options or []
