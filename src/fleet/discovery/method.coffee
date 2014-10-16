@@ -61,18 +61,22 @@ class DiscoveryMethod
       result[key] = value.value
     )
     this._doRequest(params, null, deferred)
-  _doRequest: (params, body, deferred) ->
-    req =
-      url: "#{this.client.endpoint}#{this.client.basePath}#{this.path}"
-      # Will set content/type to application/json
-      json: body
-      qs: params
-      method: this.httpMethod
+  _doRequest: (params, requestBody, deferred, previousRequest) ->
+    currentRequest = null
+    if not previousRequest
+      currentRequest =
+        url: "#{this.client.endpoint}#{this.client.basePath}#{this.path}"
+        # Will set content/type to application/json
+        json: requestBody
+        qs: params
+        method: this.httpMethod
+    else
+      currentRequest = previousRequest
     method = this
-    request(req, (error, response, body) ->
-      method._onResponse(error, response, body, deferred)
+    request(currentRequest, (error, response, body) ->
+      method._onResponse(error, response, body, deferred, currentRequest)
     )
-  _onResponse: (err, response, body, deferred) ->
+  _onResponse: (err, response, body, deferred, currentRequest) ->
     if not err and (response.statusCode < 200 or response.statusCode >= 300)
       # TODO Implement redirection 301, 302[, 303], 304
       err = new Error("Status code returned #{response.statusCode}")
@@ -91,7 +95,51 @@ class DiscoveryMethod
     catch err
       deferred.reject(err)
       return
+    if this.response instanceof Object and this.response.$ref
+      this._resolveWithSchemaResponse(jsonBody, deferred, currentRequest)
+    else
     deferred.resolve(jsonBody)
+  _resolveWithSchemaResponse: (jsonBody, deferred, currentRequest) ->
+    schema = this.client.getSchema(this.response.$ref)
+    # No schema, no check
+    if not schema
+      return deferred.resolve(jsonBody)
+    # If response should never contain nextPageToken
+    if not schema.properties["nextPageToken"]
+      return deferred.resolve(jsonBody)
+    # There should be one other property of type array
+    key = null
+    for testKey of schema.properties
+      if not schema.properties.hasOwnProperty(testKey)
+        continue
+      if testKey isnt "nextPageToken"
+        key = testKey
+    if not key
+      return deferred.resolve(jsonBody)
+    if schema.properties[key].type isnt "array"
+      # TODO implement for objects
+      return deferred.resolve(jsonBody)
+    # This should be an array
+    values = jsonBody[key]
+    # If not throw it away
+    if not _.isArray(values)
+      return deferred.resolve(jsonBody)
+    if not jsonBody["nextPageToken"]
+      # Only return to the user the values
+      return deferred.resolve(values)
+    # Modify the existing query string or create it
+    currentRequest.qs = currentRequest.qs or {}
+    currentRequest.qs["nextPageToken"] = jsonBody["nextPageToken"]
+    childDeferred = Q.defer()
+    this._doRequest(null, null, childDeferred, currentRequest)
+    childDeferred.then((childValues) ->
+      deferred.resolve(values.concat(childValues))
+    ).fail( ->
+      # TODO do something in this case where the next page
+      # fails, for now return
+      deferred.resolve(values)
+    )
+
   _groupValue: (params) ->
     params = _.merge(this.parameters, params, (a, b) ->
       a = _.clone(a)

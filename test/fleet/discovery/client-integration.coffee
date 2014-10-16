@@ -41,11 +41,10 @@ port = 8080
 startServer = (callback) ->
   server = restify.createServer()
   server.get("#{basePath}discovery.json", (res, req, next) ->
-    console.log("#{basePath}discovery.json called")
     req.send(discovery)
-    next())
+    next()
+  )
   server.get("#{basePath}resource", (req, res, next) ->
-    console.log("#{basePath}resource called")
     res.send(resource: true)
     next()
   )
