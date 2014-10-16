@@ -1,11 +1,11 @@
 proxyquire        = require("proxyquire")
 
 clientModule      = require( '../../../dist/fleet/discovery/client')
-assert            = require( 'assert' )
 chai              = require( 'chai' )
 chaiAsPromised    = require( 'chai-as-promised' )
 chai.use(chaiAsPromised)
 expect            = chai.expect
+assert            = chai.assert
 
 discovery =
   schemas:
@@ -403,6 +403,84 @@ describe "client", ->
       schema: 1
     )
     expect(schemas).to.not.include.key("schema")
+
+  specify "'on' resource works", (done) ->
+    client = clientModule.getClient("localhost:4002")
+    client._discovering = true
+    expect(client.on.resource("resource"))
+      .is.eventually.fulfilled.notify(done)
+    client._onDiscoveryResult(null, {statusCode:200}, JSON.stringify(discovery))
+
+  specify "'on' resource fails", (done) ->
+    client = clientModule.getClient("localhost:4002")
+    client._discovering = true
+    expect(client.on.resource("fake")).is.eventually
+      .rejectedWith(Error, "No resource fake").notify(done)
+    client._onDiscoveryResult(null, {statusCode:200}, JSON.stringify(discovery))
+
+  specify "'on' method works", (done) ->
+    client = clientModule.getClient("localhost:4002")
+    client._discovering = true
+    expect(client.on.method("resource", "get"))
+      .is.eventually.fulfilled.notify(done)
+    client._onDiscoveryResult(null, {statusCode:200}, JSON.stringify(discovery))
+
+  specify "'on' method fails", (done) ->
+    client = clientModule.getClient("localhost:4002")
+    client._discovering = true
+    expect(client.on.method("resource", "fake"))
+      .rejectedWith(Error, "No method fake for resource resource").notify(done)
+    client._onDiscoveryResult(null, {statusCode:200}, JSON.stringify(discovery))
+
+  specify "'on' schema works", (done) ->
+    client = clientModule.getClient("localhost:4002")
+    client._discovering = true
+    expect(client.on.schema("Unit"))
+    .is.eventually.fulfilled.notify(done)
+    client._onDiscoveryResult(null, {statusCode:200}, JSON.stringify(discovery))
+
+  specify "'on' schema fails", (done) ->
+    client = clientModule.getClient("localhost:4002")
+    client._discovering = true
+    expect(client.on.schema("fake")).is.eventually
+      .rejectedWith(Error, "No schema fake").notify(done)
+    client._onDiscoveryResult(null, {statusCode:200}, JSON.stringify(discovery))
+
+  specify "'on' method with arguments (not array) fails", (done) ->
+    client = clientModule.getClient("localhost:4002")
+    client._resolve()
+    client.resources = {
+      resource: {
+        hasMethod: ->
+          true
+        wrapCallMethod: ->
+          ->
+        method:
+          callMethod: ->
+      }
+    }
+    expect(client.on.method("resource", "method", 1)).is.eventually
+    .rejectedWith(Error, "Arguments must be an array").notify(done)
+
+  specify "'on' method with arguments (array)", (done) ->
+    client = clientModule.getClient("localhost:4002")
+    client._resolve()
+    args = [1, 2, 3]
+    client.resources = {
+      resource: {
+        hasMethod: ->
+          true
+        wrapCallMethod: ->
+          return this.method.callMethod
+        method:
+          callMethod: ->
+            expect(arguments[0]).to.equal(args[0])
+            expect(arguments[1]).to.equal(args[1])
+            expect(arguments[2]).to.equal(args[2])
+            done()
+      }
+    }
+    client.on.method("resource", "method", args)
 
 
 

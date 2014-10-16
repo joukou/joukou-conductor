@@ -12,14 +12,16 @@ class DiscoveryResource
     this.client = client
     this._attachMethods()
   _attachMethods: ->
-    for key of this.methods
-      if not this.methods.hasOwnProperty(key)
+    for methodName of this.methods
+      if not this.methods.hasOwnProperty(methodName)
         continue
-      this._attachMethod(key)
-  _attachMethod: (key) ->
+      this._attachMethod(methodName)
+  _attachMethod: (methodName) ->
+    this[methodName] = this.wrapCallMethod(methodName)
+  wrapCallMethod: (methodName) ->
     resource = this
-    this[key] = ->
-      method = resource.methods[key]
+    return ->
+      method = resource.methods[methodName]
       method.callMethod.apply(method, arguments)
   getMethod: (name) ->
     return this.methods[name]
