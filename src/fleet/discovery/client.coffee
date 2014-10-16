@@ -128,7 +128,7 @@ class DiscoveryClient
       this._rejectWithError(new Error("discovery.json body not an object"))
       return
     try
-      this.resources = this._resolveDiscovery(jsonBody)
+      this._resolveDiscovery(jsonBody)
     catch err
       this._rejectWithError(err)
       return
@@ -155,7 +155,10 @@ class DiscoveryClient
   _resolveDiscovery: (discovery) ->
     if not discovery or not _.isPlainObject(discovery)
       throw new TypeError("Discovery not instanceof an object")
-    this._resolveResources(discovery.resources)
+    {
+      resources: this.resources = this._resolveResources(discovery.resources)
+      schemas: this.schemas = this._resolveSchemas(discovery.schemas)
+    }
   _resolveResources: (resources) ->
     if not _.isPlainObject(resources)
       throw new TypeError("Resources not an object")

@@ -7,7 +7,7 @@ restify           = require('restify')
 request           = require('request')
 
 discovery =
-  schema:
+  schemas:
     UnitPage:
       type: "object"
       properties:
@@ -15,12 +15,21 @@ discovery =
           type: "array"
           items:
             $ref: "Unit"
+        nextPageToken:
+          type: 'string'
     Unit:
       type: "object"
       properties:
         name:
           type:"string"
           required:true
+    NextPageTest:
+      type: "object"
+      properties:
+        nextPageToken:
+          type: "string"
+        values:
+          type: "array"
   resources:
     resource:
       methods:
@@ -33,6 +42,17 @@ discovery =
             name:
               type: "string"
               location: "query"
+        nextPageTest:
+          id: "nextPageTest"
+          description: "test for next page token"
+          httpMethod: "GET"
+          path: "nextPage"
+          parameters:
+            nextPageToken:
+              type: "string"
+              location: "query"
+          response:
+            $ref: "NextPageTest"
 
 
 basePath = "/v1-alpha/"
@@ -46,6 +66,13 @@ startServer = (callback) ->
   )
   server.get("#{basePath}resource", (req, res, next) ->
     res.send(resource: true)
+    next()
+  )
+  server.get("#{basePath}nextPage", (req, res, next) ->
+    nextPageToken = "test"
+    if req.url.indexOf("nextPageToken") > -1
+      nextPageToken = null
+    res.send({values:[{value:"test"}], nextPageToken: nextPageToken})
     next()
   )
   server.listen(port, ->
@@ -108,6 +135,19 @@ describe "client integration tests", ->
       client.onDiscovery().then(->
         promise = client.resource.get()
         expect(promise).to.eventually.be.equal(resource: true).notify(actuallyDone)
+      )
+    , done)
+
+  specify "method follows next page token", (done) ->
+    this.timeout(3000)
+
+    asyncServer((actuallyDone, server)->
+
+      client = clientModule.getClient(server.url, basePath, true)
+      client.onDiscovery().then(->
+        console.log(client.hasSchema("NextPageTest"))
+        promise = client.resource.nextPageTest()
+        expect(promise).to.eventually.have.lengthOf(2).notify(actuallyDone)
       )
     , done)
 

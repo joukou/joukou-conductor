@@ -8,6 +8,22 @@ chai.use(chaiAsPromised)
 expect            = chai.expect
 
 discovery =
+  schemas:
+    UnitPage:
+      type: "object"
+      properties:
+        units:
+          type: "array"
+          items:
+            $ref: "Unit"
+        nextPageToken:
+          type: 'string'
+    Unit:
+      type: "object"
+      properties:
+        name:
+          type:"string"
+          required:true
   resources:
     resource:
       methods:
