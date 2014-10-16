@@ -21,6 +21,7 @@ createFromSchema: (input,
   if not name
     throw new Error("input.properties.name is required")
   connections = _.cloneDeep(input.connections)
+  checkForBrokenConnections(connections)
   processes = _.cloneDeep(input.processes)
   return createOptions(name, processes, connections)
 
@@ -52,6 +53,7 @@ createOptions = (name,
       dockerContainer: process.component
       ports: this.findPorts(connections, processKey)
     }
+    generateConnectionKeys(unit.ports)
     file = createFile(
       unit,
       joukouMessageQueAddress,
@@ -73,20 +75,23 @@ createFile = (unit,
   file.service.addEnvironment("JOUKOU_AMQP_ADDR", joukouMessageQueAddress)
   file.service.addEnvironment("JOUKOU_API_ADDR", joukouApiAddress)
 
+  for port in unit.ports
+    key = "JOUKOU_CIRCLE_#{port.type}_#{port.name}_"
+    file.service.addEnvironment("#{key}EXCHANGE", port.port.exchangeKey)
+    file.service.addEnvironment("#{key}ROUTING_KEY", port.port.routingKey)
 
   return file
 
-
-
-generateConnectionKeys: (ports) ->
+generateConnectionKeys = (ports) ->
   # Not to sure what Isaac wants to be
   # done here, add fakes for now
-  for port in connections
+  for portObject in ports
+    port = portObject.port
     if not port.exchangeKey
-      port.exchangeKey = "FAKE_SOURCE"
-      port.routingKey = "FAKE_SOURCE"
+      port.exchangeKey = "FAKE_EXCHANGE"
+      port.routingKey = "FAKE_ROUTING"
 
-checkForBrokenConnections: (connections) ->
+checkForBrokenConnections = (connections) ->
   i = 0
   while i < connections.length
     i++
@@ -107,11 +112,15 @@ findPorts = (connections, processKey) ->
   for connection in connections
     if connection.tgt.process is processKey
       result.push({
+        type: "INPORT"
+        name: connection.tgt.port
         port: connection.tgt
         connection: connection
       })
     if connection.src.process is processKey
       result.push({
+        type: "OUTPORT"
+        name: connection.src.port
         port: connection.src
         connection: connection
       })
