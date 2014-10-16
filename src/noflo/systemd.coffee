@@ -91,6 +91,57 @@ createFile = (unit,
     file.service.addEnvironment("#{key}EXCHANGE", port.port.exchangeKey)
     file.service.addEnvironment("#{key}ROUTING_KEY", port.port.routingKey)
 
+  # Run as root because
+  # - systemd-docker requires root privileges
+  # - /root/.dockercfg for registry authentication
+  file.service.addUser("root")
+
+  # sd_notify(3) is required by systemd-docker
+  file.service.addType("notify")
+  file.service.addNotifyAccess("all")
+
+  # Large start timeout is to allow for pulling down Docker images from quay.io
+  file.service.addTimeoutStartSec("12min")
+  file.service.addTimeoutStopSec("15")
+
+  file.service.addRestart("on-failure")
+  file.service.addRestartSec("10s")
+
+  file.service.addEnvironmentFile("/run/docker.env")
+
+  file.service.addExecStartPre(
+    "/usr/bin/docker run --rm -v /opt/bin:/opt/bin ibuildthecloud/systemd-docker"
+  )
+  file.service.addExecStartPre(
+    "/usr/bin/docker pull #{unit.dockerContainer}"
+  )
+
+  file.service.addExecStartPre("-/usr/bin/docker kill %p")
+  file.service.addExecStartPre("-/usr/bin/docker rm %p")
+
+  file.service.addExecStart(
+    "/opt/bin/systemd-docker run --name %p #{unit.dockerContainer}"
+  )
+
+  file.service.addExecStop("/usr/bin/docker kill %p")
+
+  file.unit.addDescription("Unit for #{unit.dockerContainer}")
+  file.unit.addDocumentation(unit.dockerContainer)
+
+  # Requires docker
+  file.unit.addAfter("docker.service")
+  file.unit.addRequires("docker.service")
+
+  # Requires rabbitmq
+  file.unit.addAfter("rabbitmq.service")
+  file.unit.addRequires("rabbitmq.service")
+
+  # Requires riak (does it?)
+  file.unit.addAfter("riak.service")
+  file.unit.addRequires("riak.service")
+
+  # Add any more required units
+
   return file
 
 generateConnectionKeys = (ports) ->
