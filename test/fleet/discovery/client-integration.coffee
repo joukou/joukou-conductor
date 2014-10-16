@@ -53,6 +53,17 @@ discovery =
               location: "query"
           response:
             $ref: "NextPageTest"
+        nextPageTestNoSecond:
+          id: "nextPageTestNoSecond"
+          description: "test for next page token"
+          httpMethod: "GET"
+          path: "nextPageTestNoSecond"
+          parameters:
+            nextPageToken:
+              type: "string"
+              location: "query"
+          response:
+            $ref: "NextPageTest"
 
 
 basePath = "/v1-alpha/"
@@ -75,6 +86,10 @@ startServer = (callback) ->
     res.send({values:[{value:"test"}], nextPageToken: nextPageToken})
     next()
   )
+  server.get("#{basePath}nextPageTestNoSecond", (req, res, next) ->
+    res.send({values:[{value:"test"}]})
+    next()
+  )
   server.listen(port, ->
     callback(server)
   )
@@ -82,7 +97,15 @@ startServer = (callback) ->
 asyncServer = (callback, done) ->
   startServer((server) ->
     callback(->
-      server.close(done)
+      callbackArguments = arguments
+      server.close(->
+        args = []
+        if typeof callbackArguments[0] is "string"
+          args.push(new Error(callbackArguments[0]))
+        else if callbackArguments[0] instanceof Error
+          args.push(callbackArguments[0])
+        done.apply(done, args)
+      )
     , server)
   )
 
@@ -134,7 +157,7 @@ describe "client integration tests", ->
       client = clientModule.getClient(server.url, basePath, true)
       client.onDiscovery().then(->
         promise = client.resource.get()
-        expect(promise).to.eventually.be.equal(resource: true).notify(actuallyDone)
+        expect(promise).to.eventually.include.key("resource").notify(actuallyDone)
       )
     , done)
 
@@ -145,9 +168,31 @@ describe "client integration tests", ->
 
       client = clientModule.getClient(server.url, basePath, true)
       client.onDiscovery().then(->
-        console.log(client.hasSchema("NextPageTest"))
         promise = client.resource.nextPageTest()
-        expect(promise).to.eventually.have.lengthOf(2).notify(actuallyDone)
+        promise.then((a)->
+          if a.length isnt 2
+            actuallyDone(new Error("response.length is expected to be 2"))
+            return
+          actuallyDone()
+        ).fail(actuallyDone)
+      )
+    , done)
+
+  specify "method doesn't follow next page token, but returns array", (done) ->
+    this.timeout(3000)
+
+    asyncServer((actuallyDone, server)->
+
+      client = clientModule.getClient(server.url, basePath, true)
+      client.onDiscovery().then(->
+        promise = client.resource.nextPageTestNoSecond()
+        promise.then((a)->
+          if a.length isnt 1
+            actuallyDone(new Error("response.length is expected to be 1"))
+            return
+          actuallyDone()
+        ).fail(actuallyDone)
+        # expect(promise).to.eventually.have.lengthOf(1).notify(actuallyDone)
       )
     , done)
 
