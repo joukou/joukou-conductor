@@ -176,17 +176,21 @@ findPorts = (connections, processKey) ->
   for connection in connections
     if connection.tgt
       if connection.tgt.process is processKey
+        if typeof connection.tgt.port isnt "string"
+          throw new TypeError("Port name is expected to be a string")
         result.push({
           type: "INPORT"
-          name: connection.tgt.port
-          port: connection.tgt
+          name: connection.tgt.port.toUpperCase()
+          port: connection.tgtnode
           connection: connection
         })
     if connection.src
       if connection.src.process is processKey
+        if typeof connection.src.port isnt "string"
+          throw new TypeError("Port name is expected to be a string")
         result.push({
           type: "OUTPORT"
-          name: connection.src.port
+          name: connection.src.port.toUpperCase()
           port: connection.src
           connection: connection
         })
