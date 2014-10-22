@@ -87,6 +87,8 @@ createFile = (unit,
   file.service.addEnvironment("JOUKOU_API_ADDR", joukouApiAddress)
 
   for port in unit.ports
+    if not port or not port.port
+      continue
     key = "JOUKOU_CIRCLE_#{port.type}_#{port.name}_"
     file.service.addEnvironment("#{key}EXCHANGE", port.port.exchangeKey)
     file.service.addEnvironment("#{key}ROUTING_KEY", port.port.routingKey)
@@ -150,7 +152,7 @@ generateConnectionKeys = (ports) ->
   # done here, add fakes for now
   for portObject in ports
     port = portObject.port
-    if not port.exchangeKey
+    if port and not port.exchangeKey
       port.exchangeKey = "FAKE_EXCHANGE"
       port.routingKey = "FAKE_ROUTING"
 
