@@ -1,6 +1,6 @@
 class SystemDSection
   section: "unknown"
-  options: []
+  options: null
   constructor: (@section) ->
     this.options = []
   addPair: (name, value) ->
