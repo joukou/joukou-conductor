@@ -110,7 +110,8 @@ createFile = (unit,
   file.service.addEnvironmentFile("/run/docker.env")
 
   file.service.addExecStartPre(
-    "/usr/bin/docker run --rm -v /opt/bin:/opt/bin ibuildthecloud/systemd-docker"
+    "/usr/bin/docker run --rm -v " +
+    "/opt/bin:/opt/bin ibuildthecloud/systemd-docker"
   )
   file.service.addExecStartPre(
     "/usr/bin/docker pull #{unit.dockerContainer}"
@@ -136,9 +137,9 @@ createFile = (unit,
   file.unit.addAfter("rabbitmq.service")
   file.unit.addRequires("rabbitmq.service")
 
-  # Requires riak (does it?)
-  file.unit.addAfter("riak.service")
-  file.unit.addRequires("riak.service")
+  # Requires api
+  file.unit.addAfter("api.service")
+  file.unit.addRequires("api.service")
 
   # Add any more required units
 
