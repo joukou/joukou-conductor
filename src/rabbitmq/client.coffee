@@ -3,33 +3,40 @@ Q       = require('q')
 uuid    = require('node-uuid')
 
 class RabbitMQClient
-  open: null
+  _channelDeferred: null
   connection: null
   channel: null
   key: null
   exchange: null
   consumer: null
+  on:
+    connection: null
+    channel: null
   constructor: (exchange, key) ->
     this.exchange = exchange
     this.key = key
-    this.open = amqplib.connect(exchange)
+    this._channelDeferred = Q.defer()
+    this.on =
+      connection: amqplib.connect(exchange)
+      channel: this._channelDeferred.promise
+    this._setupConnection()
   _setupConnection: ->
     client = this
-    this.open.then((con) ->
-      client._onConnection.apply(client, [con])
+    this.on.connection.then( ->
+      client._onConnection.apply(client, arguments)
     )
   _onConnection: (connection) ->
     this.connection = connection
+    this._setupChannel()
   _setupChannel: ->
     client = this
     ok = this.connection.createChannel()
-    ok.then((channel) ->
-      client._onChannel.apply(client, [channel])
+    ok.then( ->
+      client._onChannel.apply(client, arguments)
     )
-    ok
   _onChannel: (channel) ->
     this.channel = channel
-    this.channel.assertQueue(this.key)
+    this._channelDeferred.resolve(this)
   cancel: (consumerTag) ->
     # Not connected
     if not this.channel
@@ -41,8 +48,10 @@ class RabbitMQClient
     if not consumerTag
       # Create one so they can cancel it
       consumerTag = uuid.v4()
-    this.open.then(->
-      this.channel.consume(this.key, (message) ->
+    client = this
+    this.on.channel.then(->
+      client.channel.assertQueue(client.key)
+      client.channel.consume(client.key, (message) ->
         # Filter the duds here
         if message is null or message is undefined
           return
@@ -56,10 +65,12 @@ class RabbitMQClient
     )
     consumerTag
   send: (message) ->
-    if message isnt Buffer
+    if message not instanceof Buffer
       message = new Buffer(message)
-    this.open.then(->
-      this.channel.sendToQueue(key, message)
+    client = this
+    this.on.channel.then( ->
+      client.channel.assertQueue(client.key)
+      client.channel.sendToQueue(client.key, message)
     )
 module.exports =
   getClient: (exchange, key) ->
