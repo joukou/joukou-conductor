@@ -8,10 +8,10 @@ createFromSchema = (input,
                    joukouGraphExchangeKey) ->
   if not _.isPlainObject(input)
     throw new TypeError("input is not an object")
-  if not machineID
-    throw new Error("machineID is required")
-  if typeof machineID isnt "string"
-    throw new TypeError("machineID is not a string")
+  # if not machineID
+  #   throw new Error("machineID is required")
+  #if typeof machineID isnt "string"
+  #  throw new TypeError("machineID is not a string")
   if typeof joukouMessageQueAddress isnt "string"
     throw new TypeError("joukouMessageQueAddress is not a string")
   if typeof joukouApiAddress isnt "string"
@@ -153,14 +153,13 @@ createFile = (unit,
   return file
 
 generateConnectionKeys = (ports, joukouGraphExchangeKey) ->
-  # Not to sure what Isaac wants to be
-  # done here, add fakes for now
   for portObject in ports
     port = portObject.port
     if port and not port.exchangeKey
       port.exchangeKey = joukouGraphExchangeKey
       # TODO Routing key
-      port.routingKey = "FAKE_ROUTING"
+      port.routingKey =
+        "#{portObject.source or portObject.process}_#{portObject.name}"
 
 checkForBrokenConnections = (connections) ->
   i = 0
@@ -182,17 +181,9 @@ checkForBrokenConnections = (connections) ->
 findPorts = (connections, processKey) ->
   result = []
   for connection in connections
-    if connection.tgt
-      if connection.tgt.process is processKey
-        if typeof connection.tgt.port isnt "string"
-          throw new TypeError("Port name is expected to be a string")
-        result.push({
-          type: "INPORT"
-          name: connection.tgt.port.toUpperCase()
-          port: connection.tgtnode
-          connection: connection
-        })
+    source = null
     if connection.src
+      source = connection.src.process
       if connection.src.process is processKey
         if typeof connection.src.port isnt "string"
           throw new TypeError("Port name is expected to be a string")
@@ -201,7 +192,22 @@ findPorts = (connections, processKey) ->
           name: connection.src.port.toUpperCase()
           port: connection.src
           connection: connection
+          source: source
+          process: processKey
         })
+    if connection.tgt
+      if connection.tgt.process is processKey
+        if typeof connection.tgt.port isnt "string"
+          throw new TypeError("Port name is expected to be a string")
+        result.push({
+          type: "INPORT"
+          name: connection.tgt.port.toUpperCase()
+          port: connection.tgt
+          connection: connection
+          source: source
+          process: processKey
+        })
+
   result
 
 module.exports =
