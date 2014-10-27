@@ -119,9 +119,9 @@ class ConductorRabbitMQClient extends RabbitMQClient
     ###
     noflo.createFromSchema(
       body,
-      "TODO", # TODO machineID
-      "TODO", # TODO joukouMessageQueAddress
-      "TODO", # TODO joukouApiAddress
+      null, # TODO machineID
+      "TODO", # TODO joukouMessageQueAddress ENV
+      "TODO", # TODO joukouApiAddress ENV
       exchange
     )
     client = this.fleetClient
