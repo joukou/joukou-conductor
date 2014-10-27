@@ -23,7 +23,8 @@
     "lodash": "~2.4.1",
     "schemajs": "~0.1.11",
     "amqplib": "~0.3.0",
-    "node-uuid": "~1.4.1"
+    "node-uuid": "~1.4.1",
+    "vip": "~0.1.4"
   },
   "devDependencies": {
     "chai": "1.9.x",

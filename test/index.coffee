@@ -7,6 +7,3 @@ should            = chai.should()
 index             = require( '..' )
 
 describe 'index', ->
-
-  specify 'is eventually resolved with 42', ->
-    index().should.eventually.equal( 42 )
