@@ -8,6 +8,7 @@ RabbitMQClient            = require('./client').RabbitMQClient
 request                   = require('request')
 fleet                     = require('../fleet')
 noflo                     = require('../noflo/systemd')
+httpClient                = require('./http-client')
 
 # Set the ENV variable for next time
 # This does not effect global env just this process
@@ -52,7 +53,9 @@ class ConductorRabbitMQClient extends RabbitMQClient
     #    }
     #  },
     #  "desiredState": "launched", // or "inactive"
-    #  "secret": "json-web-token"
+    #  "secret": "json-web-token",
+    #  // Additional - Fabian
+    #  "exchange": "exchange"
     #}
     # No one is listening for errors so just return
     # if there is something missing
@@ -72,57 +75,77 @@ class ConductorRabbitMQClient extends RabbitMQClient
     this.onGraphHref(
       message["_links"]["joukou:graph"]["href"],
       message.desiredState,
-      message.secret
+      message.secret,
+      message.exchange
     )
-  onGraphHref: (graphHref, desiredState, secret) ->
+  onGraphHref: (graphHref, desiredState, secret, exchange) ->
     options = null
     if secret
       options =
-        headers:
-          Authorization: "Bearer #{secret}"
+        auth:
+          # https://github.com/request/request#http-authentication
+          bearer: secret
     client = this
+    graphDeferred = Q.defer()
+    graph = null
     request.get(graphHref, options, (error, response, body, desiredState) ->
-      client.onGraphResponse.apply(client, [
+      graph = client.onGraphResponse.apply(client, [
         error,
         response,
         body,
-        desiredState
+        desiredState,
+        graphDeferred
       ])
     )
-  onGraphResponse: (error, response, body, desiredState) ->
-    if error or response.statusCode isnt 200
-      return
-    jsonBody = null
-    try
-      jsonBody = JSON.parse(body)
-    if not jsonBody
-      return
-    try
-      this.onGraphBody(jsonBody, desiredState)
-  onGraphBody: (body, desiredState) ->
-    # TODO Err do stuff now?
-    # Im expecting this is along the lines of
-    # what is gonna happen
-    options = noflo.createFromSchema(
-      body,
-      "TODO",
-      "TODO",
-      "TODO"
+    # At the same time we should be creating the exchange
+    createExchangePromise = httpClient.createExchange(
+      exchange,
+      null, # Default
+      'direct',
+      yes,
+      yes
     )
-    # noflo.createFromSchema returns something like
+    Q.all([
+      graphDeferred.promise,
+      createExchangePromise
+    ]).then(->
+      createUnit(graph, exchange)
+    )
+  createUnit: (body, exchange) ->
     ###
       unitName: "name"
       options: [SystemDUnitFile].options
       machineID: machineID
     ###
+    noflo.createFromSchema(
+      body,
+      "TODO", # TODO machineID
+      "TODO", # TODO joukouMessageQueAddress
+      "TODO", # TODO joukouApiAddress
+      exchange
+    )
     client = this.fleetClient
     client.createUnit(
       options.unitName,
       options.options,
-      desiredState,
       null,
       options.machineID
     )
+  onGraphResponse: (error, response, body, graphDeferred) ->
+    if error or response.statusCode isnt 200
+      graphDeferred.reject()
+      return
+    jsonBody = null
+    try
+      jsonBody = JSON.parse(body)
+    if not jsonBody
+      graphDeferred.reject()
+      return
+    try
+      graphDeferred.resolve()
+      return jsonBody
+    catch
+      graphDeferred.reject()
 module.exports =
   listen: ->
     new ConductorRabbitMQClient()

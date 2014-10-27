@@ -9,8 +9,9 @@ json = JSON.parse(file)
 machineID = "MACHINE_ID"
 AMQA = "AMQA"
 API = "API"
+EXCHANGE = "EXCHANGE"
 
 describe 'noflo systemd', ->
   specify "works", ->
-    systemdFile = systemd.createFromSchema(json, machineID, AMQA, API)
+    systemdFile = systemd.createFromSchema(json, machineID, AMQA, API, EXCHANGE)
     expect(systemdFile).to.exist
