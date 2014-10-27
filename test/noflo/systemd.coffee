@@ -74,7 +74,6 @@ describe 'noflo systemd', ->
     hasIn = no
     outKey = "JOUKOU_CIRCLE_OUTPORT_OUT_ROUTING_KEY"
     inKey = "JOUKOU_CIRCLE_INPORT_IN_ROUTING_KEY"
-    console.log(JSON.stringify(systemdFile))
     for val in systemdFile[0].options
       if val.name isnt 'Environment'
         continue
