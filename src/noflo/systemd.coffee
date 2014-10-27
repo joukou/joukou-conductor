@@ -4,7 +4,8 @@ _               = require("lodash")
 createFromSchema = (input,
                    machineID,
                    joukouMessageQueAddress,
-                   joukouApiAddress) ->
+                   joukouApiAddress,
+                   joukouGraphExchangeKey) ->
   if not _.isPlainObject(input)
     throw new TypeError("input is not an object")
   if not machineID
@@ -15,6 +16,8 @@ createFromSchema = (input,
     throw new TypeError("joukouMessageQueAddress is not a string")
   if typeof joukouApiAddress isnt "string"
     throw new TypeError("joukouApiAddress is not a string")
+  if typeof joukouGraphExchangeKey isnt "string"
+    throw new TypeError("joukouGraphExchangeKey is not a string")
   if not _.isPlainObject(input.properties)
     throw new TypeError("input.properties is not an object")
   if not _.isPlainObject(input.processes)
@@ -33,7 +36,8 @@ createFromSchema = (input,
     connections,
     machineID,
     joukouMessageQueAddress,
-    joukouApiAddress
+    joukouApiAddress,
+    joukouGraphExchangeKey
   )
 
 createOptions = (name,
@@ -41,7 +45,8 @@ createOptions = (name,
                  connections,
                  machineID,
                  joukouMessageQueAddress,
-                 joukouApiAddress) ->
+                 joukouApiAddress,
+                 joukouGraphExchangeKey) ->
   options = []
   ###
   use format
@@ -64,7 +69,7 @@ createOptions = (name,
       dockerContainer: process.component
       ports: findPorts(connections, processKey)
     }
-    generateConnectionKeys(unit.ports)
+    generateConnectionKeys(unit.ports, joukouGraphExchangeKey)
     file = createFile(
       unit,
       joukouMessageQueAddress,
@@ -147,13 +152,14 @@ createFile = (unit,
 
   return file
 
-generateConnectionKeys = (ports) ->
+generateConnectionKeys = (ports, joukouGraphExchangeKey) ->
   # Not to sure what Isaac wants to be
   # done here, add fakes for now
   for portObject in ports
     port = portObject.port
     if port and not port.exchangeKey
-      port.exchangeKey = "FAKE_EXCHANGE"
+      port.exchangeKey = joukouGraphExchangeKey
+      # TODO Routing key
       port.routingKey = "FAKE_ROUTING"
 
 checkForBrokenConnections = (connections) ->
