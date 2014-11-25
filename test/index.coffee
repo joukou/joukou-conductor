@@ -4,6 +4,6 @@ chaiAsPromised    = require( 'chai-as-promised' )
 chai.use( chaiAsPromised )
 should            = chai.should()
 
-index             = require( '..' )
+index             = require( '../dist' )
 
 describe 'index', ->
