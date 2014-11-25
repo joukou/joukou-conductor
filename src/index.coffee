@@ -8,7 +8,7 @@ joukouETCDConnectionString  = process.env["JOUKOU_ETCD_CONNECTION_STRING"]
 joukouNode                  = process.env["JOUKOU_NODE"]
 
 vip                         = require( 'vip' )
-conductorClient             = require('./rabbitmq/conductor-client')
+{ ConductorRabbitMQClient } = require('joukou-conductor-rabbitmq')
 
 if not joukouETCDConnectionString
   joukouETCDConnectionString = "127.0.0.1:4001,127.0.0.1:4002"
@@ -30,7 +30,7 @@ startImmediately = ->
     # We are already listening
     return
   isRunning = yes
-  conductorClient.listen()
+  ConductorRabbitMQClient.listen()
 
 if require.main is module
   start()
