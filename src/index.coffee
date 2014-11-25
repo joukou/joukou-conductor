@@ -9,10 +9,26 @@ joukouNode                  = process.env["JOUKOU_NODE"]
 
 vip                         = require( 'vip' )
 { ConductorRabbitMQClient } = require('joukou-conductor-rabbitmq')
+url                         = require('util')
+logger                      = require('logger')
+moment                      = require('moment')
+prettified                  = require('prettified').errors
 
 if not joukouETCDConnectionString
   joukouETCDConnectionString = "127.0.0.1:4001,127.0.0.1:4002"
   process.env["JOUKOU_ETCD_CONNECTION_STRING"] = joukouETCDConnectionString
+
+if not joukouNode
+  joukouNode = "JoukouNode"
+  process.env["JOUKOU_NODE"] = joukouNode
+
+process.on("uncaughtException", (err) ->
+  console.log("#{moment().format()}:")
+  prettified.print(err)
+)
+process.on("exit", ->
+  console.log("Process exiting #{moment().format()}")
+)
 
 start = ->
   vipcontroller = vip('127.0.0.1:4001,127.0.0.1:4002')
@@ -21,7 +37,13 @@ start = ->
     path: "/joukou-conductor"
     value: "joukou-conductor-vip_#{joukouNode}"
     ttl: 5
-  , startImmediately)
+  , ->
+
+  )
+  service.on("select", (id, value) ->
+    startImmediately()
+  )
+  service.start()
 
 isRunning = no
 
@@ -33,6 +55,7 @@ startImmediately = ->
   ConductorRabbitMQClient.listen()
 
 if require.main is module
+  console.log("Process starting #{moment().format()}")
   start()
 
 module.exports =

@@ -25,7 +25,11 @@
     "amqplib": "~0.3.0",
     "node-uuid": "~1.4.1",
     "vip": "~0.1.4",
-    "joukou-conductor-rabbitmq": "git://github.com/joukou/joukou-conductor-rabbitmq.git#v0.0.1"
+    "joukou-conductor-rabbitmq": "git://github.com/joukou/joukou-conductor-rabbitmq.git#v0.0.3",
+    "util": "~0.10.3",
+    "logger": "0.0.1",
+    "moment": "~2.8.4",
+    "prettified": "0.0.7"
   },
   "devDependencies": {
     "chai": "1.9.x",
